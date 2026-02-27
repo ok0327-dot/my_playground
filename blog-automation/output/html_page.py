@@ -79,7 +79,7 @@ def _build_html(drafts: list[BlogDraft], run_date: str) -> str:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Blog Drafts - {run_date}</title>
+    <title>Blog Automation - {run_date}</title>
     <style>
         * {{ box-sizing: border-box; margin: 0; padding: 0; }}
         body {{
@@ -209,7 +209,7 @@ def _build_html(drafts: list[BlogDraft], run_date: str) -> str:
 </head>
 <body>
     <header>
-        <h1>Blog Drafts</h1>
+        <h1>Blog Automation</h1>
         <div class="date">{run_date}</div>
     </header>
 
