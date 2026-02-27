@@ -1,4 +1,4 @@
-name: Daily Blog Automation
+name: Blog Automation
 
 on:
   schedule:

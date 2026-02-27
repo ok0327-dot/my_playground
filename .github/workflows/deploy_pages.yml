@@ -1,4 +1,4 @@
-name: Deploy Pages
+name: Blog Automation - Deploy Pages
 
 on:
   push:
