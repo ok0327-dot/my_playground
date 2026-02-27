@@ -12,7 +12,7 @@ class TopicLabel(str, Enum):
     PRIORITY = "PRIORITY"
     ADOPT = "ADOPT"
     SKIP = "SKIP"
-    MANUAL = "MANUAL"  # AI 분류 실패 시 수동 검토
+    MANUAL = "MANUAL"  # 사용자 직접 지정 토픽 (User-specified topic)
 
 
 @dataclass
@@ -46,6 +46,7 @@ class Topic:
     keyword: str
     label: TopicLabel = TopicLabel.MANUAL
     reason: str = ""
+    score: int = 0  # AI가 부여한 트래픽 잠재력 점수 1~10 (Traffic potential score)
     related_news: list[NewsItem] = field(default_factory=list)
 
 

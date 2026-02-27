@@ -45,6 +45,8 @@ class Settings:
     save_local_markdown: bool = True
     # GitHub Pages HTML 뷰어 / GitHub Pages HTML viewer
     generate_html_viewer: bool = True
+    # 수동 토픽 지정 (Manual topic override)
+    manual_topics: tuple[str, ...] = ()
     # 옵션
     dry_run: bool = False
     log_level: str = "INFO"
@@ -74,6 +76,9 @@ class Settings:
             output_dir=os.getenv("OUTPUT_DIR", "outputs"),
             save_local_markdown=os.getenv("SAVE_LOCAL_MARKDOWN", "true").lower() == "true",
             generate_html_viewer=os.getenv("GENERATE_HTML_VIEWER", "true").lower() == "true",
+            manual_topics=tuple(
+                t.strip() for t in os.getenv("MANUAL_TOPICS", "").split(",") if t.strip()
+            ),
             dry_run=os.getenv("DRY_RUN", "false").lower() == "true",
             log_level=os.getenv("LOG_LEVEL", "INFO"),
         )

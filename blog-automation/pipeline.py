@@ -8,7 +8,7 @@ from datetime import datetime
 
 from config.constants import MAX_TOPICS_PER_RUN
 from config.settings import Settings
-from models import PipelineResult, TopicLabel
+from models import PipelineResult, Topic, TopicLabel
 
 logger = logging.getLogger(__name__)
 
@@ -139,14 +139,47 @@ def run() -> PipelineResult:
         ai_provider=settings.ai_provider,
     )
 
-    # PRIORITY + ADOPT 중 상위 N개 선정
+    # ── Step 2.5: 수동 토픽 주입 (Manual topic injection) ──
+    if settings.manual_topics:
+        logger.info("수동 토픽 %d개 주입: %s", len(settings.manual_topics), list(settings.manual_topics))
+        existing_norms = {t.keyword.lower().strip() for t in result.classified_topics}
+        for mt in settings.manual_topics:
+            if mt.lower().strip() not in existing_norms:
+                result.classified_topics.append(
+                    Topic(
+                        keyword=mt,
+                        label=TopicLabel.MANUAL,
+                        reason="사용자 직접 지정",
+                        score=10,
+                    )
+                )
+            else:
+                # 이미 AI가 분류한 토픽이면 MANUAL로 승격 + score=10
+                for t in result.classified_topics:
+                    if t.keyword.lower().strip() == mt.lower().strip():
+                        t.label = TopicLabel.MANUAL
+                        t.score = 10
+                        t.reason = f"사용자 직접 지정 (AI 사유: {t.reason})"
+                        break
+
+    # MANUAL + PRIORITY + ADOPT 중 상위 N개 선정
+    # 정렬: MANUAL > PRIORITY > ADOPT, 같은 등급 내에서는 score 높은 순
     selected = [
         t for t in result.classified_topics
         if t.label in (TopicLabel.PRIORITY, TopicLabel.ADOPT, TopicLabel.MANUAL)
     ]
-    selected.sort(key=lambda t: (t.label != TopicLabel.PRIORITY, t.label != TopicLabel.ADOPT))
+    selected.sort(key=lambda t: (
+        t.label != TopicLabel.MANUAL,
+        t.label != TopicLabel.PRIORITY,
+        t.label != TopicLabel.ADOPT,
+        -t.score,
+    ))
     selected = selected[:MAX_TOPICS_PER_RUN]
-    logger.info("선정된 토픽: %d개 — %s", len(selected), [t.keyword for t in selected])
+    logger.info(
+        "선정된 토픽: %d개 — %s",
+        len(selected),
+        [(t.keyword, t.label.value, t.score) for t in selected],
+    )
 
     if not selected:
         logger.warning("블로그 글로 채택된 토픽 없음. 파이프라인 종료.")

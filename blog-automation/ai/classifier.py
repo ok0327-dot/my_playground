@@ -43,6 +43,7 @@ def _rule_based_classify(keyword: str) -> Topic:
                 keyword=keyword,
                 label=TopicLabel.SKIP,
                 reason=f"규칙 기반 스킵 (매칭: {pattern})",
+                score=1,
             )
 
     # 우선순위 키워드 체크
@@ -52,6 +53,7 @@ def _rule_based_classify(keyword: str) -> Topic:
                 keyword=keyword,
                 label=TopicLabel.PRIORITY,
                 reason=f"규칙 기반 우선순위 (매칭: {pk})",
+                score=7,
             )
 
     # 기본값: ADOPT
@@ -59,6 +61,7 @@ def _rule_based_classify(keyword: str) -> Topic:
         keyword=keyword,
         label=TopicLabel.ADOPT,
         reason="규칙 기반 기본 분류",
+        score=5,
     )
 
 
@@ -96,11 +99,19 @@ def classify_topics(
                 label = TopicLabel(item["label"])
             except (KeyError, ValueError):
                 label = TopicLabel.MANUAL
+            score = item.get("score", 5)  # 기본값 5 (backward compat)
+            if not isinstance(score, int):
+                try:
+                    score = int(score)
+                except (TypeError, ValueError):
+                    score = 5
+            score = max(1, min(10, score))  # 1~10 범위 보정 (clamp)
             topics.append(
                 Topic(
                     keyword=item.get("topic", ""),
                     label=label,
                     reason=item.get("reason", ""),
+                    score=score,
                 )
             )
         logger.info(
