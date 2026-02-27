@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog Drafts - 2026-02-27</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont,
+                         "Segoe UI", Roboto, "Noto Sans KR", sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            padding: 12px;
+            max-width: 640px;
+            margin: 0 auto;
+        }
+        header {
+            text-align: center;
+            padding: 16px 0;
+            border-bottom: 2px solid #4CAF50;
+            margin-bottom: 16px;
+        }
+        header h1 { font-size: 1.4rem; color: #2e7d32; }
+        header .date { font-size: 0.85rem; color: #888; margin-top: 4px; }
+
+        .draft-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+        }
+        .draft-card .title-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 8px;
+        }
+        .draft-card h2 {
+            font-size: 1.1rem;
+            color: #1a1a1a;
+            flex: 1;
+            word-break: keep-all;
+        }
+        .copy-btn {
+            flex-shrink: 0;
+            background: #4CAF50;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 14px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            white-space: nowrap;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .copy-btn:active { background: #388E3C; }
+
+        .meta-info {
+            display: flex;
+            gap: 8px;
+            font-size: 0.8rem;
+            color: #888;
+            margin: 8px 0;
+            flex-wrap: wrap;
+        }
+        .meta-info .tag {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+        }
+
+        .body-section { position: relative; margin-top: 8px; }
+        .body-text {
+            background: #fafafa;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 0.95rem;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            word-break: keep-all;
+            max-height: 400px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .body-copy-btn {
+            display: block;
+            width: 100%;
+            margin-top: 8px;
+        }
+
+        .market-toggle {
+            background: none;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 8px;
+            width: 100%;
+            font-size: 0.85rem;
+            color: #666;
+            cursor: pointer;
+            margin-top: 12px;
+        }
+        .market-data {
+            display: none;
+            margin-top: 8px;
+            font-size: 0.8rem;
+            color: #666;
+            line-height: 1.6;
+        }
+        .market-data.open { display: block; }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: #fff;
+            padding: 10px 24px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 1000;
+        }
+        .toast.show { opacity: 1; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Blog Drafts</h1>
+        <div class="date">2026-02-27</div>
+    </header>
+
+
+    <div class="draft-card">
+        <div class="title-row">
+            <h2 id="title-0">2024년 수출바우처 정책</h2>
+            <button class="copy-btn" onclick="copyText('title-0')">제목 복사</button>
+        </div>
+        <div class="meta-info">
+            <span>읽기 5분</span>
+            <span class="tag">수출바우처</span><span class="tag">경제정책</span><span class="tag">수출증가</span><span class="tag">무역수지</span><span class="tag">경제성장</span>
+        </div>
+        <div class="body-section">
+            <div class="body-text" id="body-0">수출바우처는 무엇일까요? 간단히 말하면, 수출을 증가시키기 위한 정부의 정책입니다. 수출바우처를 통해 기업들이 수출을 확대하면, 우리나라의 무역수지는 개선되고, 경제성장에도 도움이 될 것입니다.
+
+하지만, 수출바우처의 영향은 단순히 수출 증가에만 그치지 않습니다. 오늘의 시장 상황을 보면, KOSPI와 KOSDAQ가 상승하고, 환율도 안정되는 추세를 보입니다. 이러한 시장 상황은 수출바우처의 효과가 이미 나타나고 있음을 시사합니다.
+
+무슨 일?
+수출바우처는 수출을 증가시키기 위한 政策입니다. 정부는 수출바우처를 통해 기업들이 수출을 확대할 수 있도록 지원합니다.
+
+왜?
+수출바우처는 우리나라의 무역수지를 개선하고, 경제성장에 도움이 될 것입니다. 또한, 수출바우처는 기업들이 수출을 확대할 수 있도록 지원하여, 일자리를 창출하고, 경제 성장에 기여합니다.
+
+나에게 미치는 영향
+수출바우처는 우리나라의 경제성장에 긍정적인 영향을 미칩니다. 또한, 수출바우처는 기업들이 수출을 확대할 수 있도록 지원하여, 일자리를 창출하고, 경제 성장에 기여합니다. 하지만, 수출바우처의 효과는 시장 상황에 따라 다를 수 있습니다. 따라서, 수출바우처의 영향에 대해 자세히 살펴보는 것이 중요합니다.
+
+아래 표는 오늘의 시장 상황을 요약한 것입니다.
+
+  
+    
+      지표
+      값
+    
+
+  
+  
+    
+      KOSPI
+      6,307.27
+    
+
+    
+      KOSDAQ
+      1,188.15
+    
+
+    
+      USD_KRW
+      1,426.93
+    
+
+  
+
+오늘의 글을 마치며, 수출바우처의 효과가 이미 나타나고 있음을 시사하는 시장 상황을 살펴보았습니다. 수출바우처는 우리나라의 경제성장에 긍정적인 영향을 미칩니다. 하지만, 수출바우처의 효과는 시장 상황에 따라 다를 수 있습니다. 따라서, 수출바우처의 영향에 대해 자세히 살펴보는 것이 중요합니다. 오늘의 시장 상황을 참고하여, 경제에 대한 이해를 깊게 해보세요.</div>
+            <button class="copy-btn body-copy-btn" onclick="copyText('body-0')">본문 복사</button>
+        </div>
+    <button class="market-toggle" onclick="toggleMarket('market-0')">
+        시장 데이터 보기/숨기기
+    </button>
+    <div class="market-data" id="market-0">KOSPI: 6,307.27 (+3.67%)<br>KOSDAQ: 1,188.15 (+1.97%)<br>USD_KRW: 1,426.93 (-0.91%)<br>EUR_KRW: 1,685.37 (-0.58%)<br>JPY_KRW: 9.13 (-1.11%)<br>WTI_OIL: 65.21 (-0.32%)<br>GOLD: 5,176.50 (-0.57%)<br>BTC_USD: 67,453.77 (-0.75%)</div>
+    </div>
+
+    <div class="draft-card">
+        <div class="title-row">
+            <h2 id="title-1">2024 근로장려금 이렇게 받아요</h2>
+            <button class="copy-btn" onclick="copyText('title-1')">제목 복사</button>
+        </div>
+        <div class="meta-info">
+            <span>읽기 5분</span>
+            <span class="tag">근로장려금</span><span class="tag">생활경제</span><span class="tag">소득</span><span class="tag">소비</span>
+        </div>
+        <div class="body-section">
+            <div class="body-text" id="body-1">근로장려금, 들어봤어요? 맞벌이 부부나 저소득층에게는 큰 도움이 되는 제도입니다. 근로장려금이란, 정부에서 저소득층 근로자의 소득을 지원하기 위해 지급하는 현금입니다. 하지만, 많은 사람들이 근로장려금이 무엇인지, 어떻게 받는지 모르는 경우가 많아요.
+
+그래서 오늘은 근로장려금에 대해 자세히 살펴보겠습니다. 근로장려금의 대상과 받는 방법, 그리고 소득에 미치는 영향에 대해서 설명드리겠습니다.
+
+근로장려금이란?
+근로장려금은 한국 정부에서 저소득층 근로자의 소득을 지원하기 위해 지급하는 현금입니다. 근로장려금의 목적은 저소득층 근로자의 소득을 증대시키고, 그들의 생활水平을 향상시키는 것입니다.
+
+근로장려금의 대상은?
+근로장려금의 대상은 저소득층 근로자입니다. 구체적으로는, 연간 소득이 일정 금액 이하인 근로자们이 대상입니다. 또한, 근로장려금을 받으려면, 일정 기간 동안 근로해야 하며, 그 기간 동안의 평균 소득이 일정 금액 이하여야 합니다.
+
+받는 방법은?
+근로장려금을 받으려면, 국세청이나 지방 налог 사무소에서 신청서를 제출하면 됩니다. 신청서에는, 근로자의 소득과 근로 기간 등을 기재해야 합니다. 신청서를 제출한 후, 근로장려금을 받으려면, 일정 기간 동안의 근로 실적을 제출해야 합니다.
+
+소득에 미치는 영향은?
+근로장려금은 저소득층 근로자의 소득을 증대시키는 효과가 있습니다. 근로장려금을 받게 되면, 근로자의 소득이 증가하여, 생활水平이 향상됩니다. 또한, 근로장려금은 근로자의 근로 의욕을 높여주어, 근로자의 생산성을 높이는 효과도 있습니다.
+
+오늘의 시장 상황은 다음과 같습니다.
+
+  
+    
+      지표
+      값
+      비고
+    
+
+  
+  
+    
+      KOSPI
+      6,307.27
+      +3.67%
+    
+
+    
+      KOSDAQ
+      1,188.15
+      +1.97%
+    
+
+    
+      USD_KRW
+      1,426.93
+      -0.91%
+    
+
+    
+      EUR_KRW
+      1,685.37
+      -0.58%
+    
+
+    
+      JPY_KRW
+      9.13
+      -1.11%
+    
+
+  
+
+오늘의 글을 마치면서, 근로장려금은 저소득층 근로자의 소득을 지원하기 위한 중요한 제도임을 기억하세요. 근로장려금에 대한 자세한 정보를 알고 싶으시면, 국세청이나 지방 налог 사무소에 문의하시기 바랍니다. 그리고 오늘의 시장 상황을 잘 살펴보시고, 경제적인 판단을 내리시기 바랍니다.</div>
+            <button class="copy-btn body-copy-btn" onclick="copyText('body-1')">본문 복사</button>
+        </div>
+    <button class="market-toggle" onclick="toggleMarket('market-1')">
+        시장 데이터 보기/숨기기
+    </button>
+    <div class="market-data" id="market-1">KOSPI: 6,307.27 (+3.67%)<br>KOSDAQ: 1,188.15 (+1.97%)<br>USD_KRW: 1,426.93 (-0.91%)<br>EUR_KRW: 1,685.37 (-0.58%)<br>JPY_KRW: 9.13 (-1.11%)<br>WTI_OIL: 65.21 (-0.32%)<br>GOLD: 5,176.50 (-0.57%)<br>BTC_USD: 67,453.77 (-0.75%)</div>
+    </div>
+
+    <div class="draft-card">
+        <div class="title-row">
+            <h2 id="title-2">2024년 2월 경제전망: 부동산과 주식시장의 변화</h2>
+            <button class="copy-btn" onclick="copyText('title-2')">제목 복사</button>
+        </div>
+        <div class="meta-info">
+            <span>읽기 5분</span>
+            <span class="tag">주식</span><span class="tag">부동산</span><span class="tag">경제전망</span><span class="tag">투자</span><span class="tag">금리</span>
+        </div>
+        <div class="body-section">
+            <div class="body-text" id="body-2">최근 부동산과 주식시장이 어떻게 변하고 있는지 관심이 많죠. 분당 아파트를 내놓는다는 대통령의 발언이 주목을 받았습니다. 그리고 코스피는 7거래일 만에 하락 마감했습니다. сегодня의 주식 시장 상황을 살펴보겠습니다.
+
+무슨 일?
+최근 코스피는 연일 사상 최고치를 기록하며 상승세를 보였습니다. 그러나 7거래일 만에 하락 마감했습니다. 이에 외인들의 투매가 영향을 미친 것으로 보입니다. ETF(상장지수펀드, 특정 지수에 따라서 운용하는 펀드)를 포함한 투자 상품들이 영향을 받았습니다.
+
+왜?
+하락의 이유는 다양하지만, 주요한 이유는 외인 투자자들의 투매입니다. 최근 경제 상황과 관련된 다양한 요인이 영향을 미쳤습니다. 또한, 부동산 시장의 변동도 주식 시장에 영향을 줄 수 있습니다.
+
+나에게 미치는 영향
+주식 투자자들은 최근의 상황을 주의 깊게 살펴보세요. 시장의 변동성이 증가하고 있기 때문에, 투자 전략을 다시 점검해 보는 것이 좋습니다. 또한, 부동산 시장의 변동도 주목하세요. 이러한 요인들이 당신의 투자에 미치는 영향을 고려하세요.
+
+오늘의 시장 데이터를 살펴보겠습니다.
+
+  
+    
+      지표
+      값
+      변동
+    
+
+  
+  
+    
+      KOSPI
+      6,307.27
+      +3.67%
+    
+
+    
+      KOSDAQ
+      1,188.15
+      +1.97%
+    
+
+    
+      USD_KRW
+      1,426.93
+      -0.91%
+    
+
+  
+
+오늘은 최근의 부동산과 주식시장의 상황을 살펴보았습니다. 이러한 요인들이 당신의经济 생활에 미치는 영향을 고려하세요. 투자 전략을 다시 점검해 보세요. 그리고 항상最新의 시장 데이터를 확인하세요.</div>
+            <button class="copy-btn body-copy-btn" onclick="copyText('body-2')">본문 복사</button>
+        </div>
+    <button class="market-toggle" onclick="toggleMarket('market-2')">
+        시장 데이터 보기/숨기기
+    </button>
+    <div class="market-data" id="market-2">KOSPI: 6,307.27 (+3.67%)<br>KOSDAQ: 1,188.15 (+1.97%)<br>USD_KRW: 1,426.93 (-0.91%)<br>EUR_KRW: 1,685.37 (-0.58%)<br>JPY_KRW: 9.13 (-1.11%)<br>WTI_OIL: 65.21 (-0.32%)<br>GOLD: 5,176.50 (-0.57%)<br>BTC_USD: 67,453.77 (-0.75%)</div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        async function copyText(elementId) {
+            var el = document.getElementById(elementId);
+            var text = el.innerText || el.textContent;
+            try {
+                await navigator.clipboard.writeText(text);
+                showToast("복사 완료!");
+            } catch (err) {
+                var ta = document.createElement("textarea");
+                ta.value = text;
+                ta.style.position = "fixed";
+                ta.style.opacity = "0";
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand("copy");
+                document.body.removeChild(ta);
+                showToast("복사 완료!");
+            }
+        }
+
+        function showToast(msg) {
+            var toast = document.getElementById("toast");
+            toast.textContent = msg;
+            toast.classList.add("show");
+            setTimeout(function() { toast.classList.remove("show"); }, 1500);
+        }
+
+        function toggleMarket(id) {
+            document.getElementById(id).classList.toggle("open");
+        }
+    </script>
+</body>
+</html>

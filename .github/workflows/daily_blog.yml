@@ -1,0 +1,101 @@
+name: Daily Blog Automation
+
+on:
+  schedule:
+    # 매일 06:00 KST = 21:00 UTC (전날)
+    - cron: "0 21 * * *"
+  workflow_dispatch: # 수동 트리거
+
+# GitHub Pages 배포 권한
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  generate-blog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: blog-pipeline
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: blog-automation/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r blog-automation/requirements.txt
+
+      - name: Run blog pipeline
+        working-directory: blog-automation
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          AI_PROVIDER: ${{ secrets.AI_PROVIDER || 'gemini' }}
+          NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
+          NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
+          GOOGLE_SHEETS_CREDENTIALS: ${{ secrets.GOOGLE_SHEETS_CREDENTIALS }}
+          GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
+          COUPANG_ACCESS_KEY: ${{ secrets.COUPANG_ACCESS_KEY }}
+          COUPANG_SECRET_KEY: ${{ secrets.COUPANG_SECRET_KEY }}
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          SAVE_LOCAL_MARKDOWN: "true"
+          GENERATE_HTML_VIEWER: "true"
+          OUTPUT_DIR: outputs
+          LOG_LEVEL: INFO
+        run: python pipeline.py
+
+      - name: Commit viewer page to docs/
+        if: success()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add blog-automation/docs/index.html
+          git diff --staged --quiet || git commit -m "chore: update blog viewer (${{ github.run_id }})"
+          git push
+
+      - name: Deploy to GitHub Pages
+        if: success()
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: blog-automation/docs
+
+      - name: Upload outputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: blog-outputs-${{ github.run_id }}
+          path: |
+            blog-automation/outputs/
+            blog-automation/logs/
+          retention-days: 14
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipeline-logs-${{ github.run_id }}
+          path: blog-automation/logs/
+          retention-days: 7
+
+  deploy-pages:
+    needs: generate-blog
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

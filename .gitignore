@@ -1,5 +1,6 @@
+# === 공통 (Common) ===
 venv/
-.wdm/
+.venv/
 __pycache__/
 *.py[cod]
 *.egg-info/
@@ -7,7 +8,21 @@ dist/
 build/
 .idea/
 .vscode/
+.wdm/
 *.swp
 .DS_Store
 Thumbs.db
 .claude/
+
+# 환경변수/시크릿 (Secrets)
+.env
+.env.local
+.env.*.local
+.env.production
+.env.staging
+*.key
+*.pem
+
+# === blog-automation ===
+blog-automation/logs/
+blog-automation/outputs/
