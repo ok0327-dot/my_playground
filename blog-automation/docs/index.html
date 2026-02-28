@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog Automation - 2026-03-01</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont,
+                         "Segoe UI", Roboto, "Noto Sans KR", sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            padding: 12px;
+            max-width: 640px;
+            margin: 0 auto;
+        }
+        header {
+            text-align: center;
+            padding: 16px 0;
+            border-bottom: 2px solid #4CAF50;
+            margin-bottom: 16px;
+        }
+        header h1 { font-size: 1.4rem; color: #2e7d32; }
+        header .date { font-size: 0.85rem; color: #888; margin-top: 4px; }
+
+        .draft-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+        }
+        .draft-card .title-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 8px;
+        }
+        .draft-card h2 {
+            font-size: 1.1rem;
+            color: #1a1a1a;
+            flex: 1;
+            word-break: keep-all;
+        }
+        .copy-btn {
+            flex-shrink: 0;
+            background: #4CAF50;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 14px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            white-space: nowrap;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .copy-btn:active { background: #388E3C; }
+
+        .meta-info {
+            display: flex;
+            gap: 8px;
+            font-size: 0.8rem;
+            color: #888;
+            margin: 8px 0;
+            flex-wrap: wrap;
+        }
+        .meta-info .tag {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+        }
+
+        .body-section { position: relative; margin-top: 8px; }
+        .body-html {
+            background: #fafafa;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 0.95rem;
+            line-height: 1.7;
+            word-break: keep-all;
+            max-height: 500px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .body-html img { width: 100%; border-radius: 8px; margin: 12px 0; }
+        .body-html h3 { font-size: 1.05rem; margin: 16px 0 8px; color: #2e7d32; }
+        .body-html p { margin-bottom: 10px; }
+        .body-html table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.85rem; }
+        .body-html th, .body-html td { border: 1px solid #ddd; padding: 6px 8px; text-align: left; }
+        .body-html th { background: #f0f0f0; }
+        .body-copy-btn {
+            display: block;
+            width: 100%;
+            margin-top: 8px;
+        }
+        .img-save-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .img-save-btn {
+            flex: 1;
+            background: #1976D2;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .img-save-btn:active { background: #1565C0; }
+
+        .market-toggle {
+            background: none;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 8px;
+            width: 100%;
+            font-size: 0.85rem;
+            color: #666;
+            cursor: pointer;
+            margin-top: 12px;
+        }
+        .market-data {
+            display: none;
+            margin-top: 8px;
+            font-size: 0.8rem;
+            color: #666;
+            line-height: 1.6;
+        }
+        .market-data.open { display: block; }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: #fff;
+            padding: 10px 24px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 1000;
+        }
+        .toast.show { opacity: 1; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Blog Automation</h1>
+        <div class="date">2026-03-01</div>
+    </header>
+
+
+    <div class="draft-card">
+        <div class="title-row">
+            <h2 id="title-0">2026년 3월 1일 주식 시장 분석: 코스피 6000포인트 돌파</h2>
+            <button class="copy-btn" onclick="copyText('title-0')">제목 복사</button>
+        </div>
+        <div class="meta-info">
+            <span>읽기 10분</span>
+            <span class="tag">코스피</span><span class="tag">기준금리</span><span class="tag">한국은행</span><span class="tag">주식 시장</span><span class="tag">경제 전망</span>
+        </div>
+        <div class="body-section">
+            <div class="body-html" id="body-rendered-0"><p>안녕하세요, 여러분은 어떻게 생각하시나요? 저는 개인적으로 최근 주식 시장의 변화를 주목하고 있습니다. 특히 코스피가 6000포인트를 돌파한 것이 큰 관심사였는데요, 이러한 변화는 주식 시장에 많은 영향을 미칠 수 있습니다.</p>
+<img src="https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4ODQ4MjF8MHwxfHNlYXJjaHwxfHxTdG9jayUyMG1hcmtldHxlbnwwfDB8fHwxNzcyMzEwMTI3fDA&ixlib=rb-4.1.0&q=80&w=1080" alt="[위클리 PICK 3] 코스피 6000포인트 돌파부터 韓銀 기준금리 동결까지" style="width:100%; border-radius:8px; margin:16px 0 4px;" /><p style="font-size:12px; color:#999; text-align:center; margin:0 0 16px;">Photo by Maxim Hopman on Unsplash</p>
+
+<p>지난주에 있었던 한국은행의 기준금리 동결 결정도 주목할 만합니다. 기준금리(한국은행이 정하는 대표 금리)는 금융 시장에 큰 영향을 미치는데요, 이는 저금리 率인 대출과 예금에 영향을 주게 됩니다. 따라서 이러한 결정은 주식 시장과 경제 전반에 큰 영향을 미칠 수 있습니다.</p>
+<h3>코스피 6000포인트 돌파: 의미와 영향</h3>
+<p>코스피가 6000포인트를 돌파한 것은 한국 주식 시장의 강세를 의미합니다. 이는 외국인 투자자들이 한국 주식을 매수하면서 주가가 상승한 결과입니다. 하지만 이는 또한 주식 시장의 과열을 나타낼 수 있습니다. 과열된 주식 시장은 언제든지崩潰할 수 있기 때문에 투자자들은 주의해야 합니다.</p>
+<p>이러한 상황에서 투자자들은 주의해야 합니다. 주식 시장은 항상 변동성이 크기 때문에, 투자자들은 이러한 변동성을 고려하여投資戦略을 수립해야 합니다. 예를 들어, 주식 투자를 하기 전에 시장의趨勢를 분석하고, 투자 목표를 설정하는 것이 중요합니다.</p>
+<h3>기준금리 동결: 의미와 영향</h3>
+<p>한국은행의 기준금리 동결 결정은 주식 시장과 경제 전반에 큰 영향을 미칠 수 있습니다. 기준금리는 금융 시장에 큰 영향을 미치는데요, 이는 저금리 率인 대출과 예금에 영향을 주게 됩니다. 따라서 이러한 결정은 주식 시장과 경제 전반에 큰 영향을 미칠 수 있습니다.</p>
+<p>투자자들은 이러한 결정에 주의해야 합니다. 기준금리가 낮으면 대출과 예금에 영향을 미치기 때문에, 투자자들은 이러한 영향을 고려하여投資戦略을 수립해야 합니다. 예를 들어, 기준금리가 낮으면 대출이 쉬워지기 때문에, 투자자들은 대출을 통한 투자를 고려할 수 있습니다.</p>
+<p>저는 개인적으로 이러한 quyết定的 영향을 주의해서 살펴보고 있습니다. 투자자들은 이러한 quyết定的 영향을 고려하여投資戦略을 수립해야 합니다. 그리고 항상 주의해야 합니다. 주식 시장은 항상 변동성이 크기 때문에, 투자자들은 이러한 변동성을 고려하여投資戦略을 수립해야 합니다.</p>
+<p>역사적으로 부자는 언제나 불황에서 나왔습니다. 다들 화이팅입니다!!</p>
+<p>by K</p></div>
+            <div id="body-naver-0" style="display:none"><div style="font-size:16px; line-height:1.9; color:#333;">안녕하세요, 여러분은 어떻게 생각하시나요? 저는 개인적으로 최근 주식 시장의 변화를 주목하고 있습니다. 특히 코스피가 6000포인트를 돌파한 것이 큰 관심사였는데요, 이러한 변화는 주식 시장에 많은 영향을 미칠 수 있습니다.</div><br>
+<div style="text-align:center; margin:16px 0; padding:12px; background:#f0f7f0; border:1px dashed #4CAF50; border-radius:8px; font-size:14px; color:#666;">📷 이미지 저장 후 여기에 삽입</div><br><div style="font-size:13px; color:#999; text-align:center; line-height:1.4;">Photo by Maxim Hopman on Unsplash</div>
+
+<div style="font-size:16px; line-height:1.9; color:#333;">지난주에 있었던 한국은행의 기준금리 동결 결정도 주목할 만합니다. 기준금리(한국은행이 정하는 대표 금리)는 금융 시장에 큰 영향을 미치는데요, 이는 저금리 率인 대출과 예금에 영향을 주게 됩니다. 따라서 이러한 결정은 주식 시장과 경제 전반에 큰 영향을 미칠 수 있습니다.</div><br>
+<br><blockquote style="border-left:4px solid #4CAF50; margin:20px 0 12px; padding:10px 16px; background-color:#f8f9fa;"><b style="font-weight:bold; color:#1a1a1a;">코스피 6000포인트 돌파: 의미와 영향</b></blockquote>
+<div style="font-size:16px; line-height:1.9; color:#333;">코스피가 6000포인트를 돌파한 것은 한국 주식 시장의 강세를 의미합니다. 이는 외국인 투자자들이 한국 주식을 매수하면서 주가가 상승한 결과입니다. 하지만 이는 또한 주식 시장의 과열을 나타낼 수 있습니다. 과열된 주식 시장은 언제든지崩潰할 수 있기 때문에 투자자들은 주의해야 합니다.</div><br>
+<div style="font-size:16px; line-height:1.9; color:#333;">이러한 상황에서 투자자들은 주의해야 합니다. 주식 시장은 항상 변동성이 크기 때문에, 투자자들은 이러한 변동성을 고려하여投資戦略을 수립해야 합니다. 예를 들어, 주식 투자를 하기 전에 시장의趨勢를 분석하고, 투자 목표를 설정하는 것이 중요합니다.</div><br>
+<br><blockquote style="border-left:4px solid #4CAF50; margin:20px 0 12px; padding:10px 16px; background-color:#f8f9fa;"><b style="font-weight:bold; color:#1a1a1a;">기준금리 동결: 의미와 영향</b></blockquote>
+<div style="font-size:16px; line-height:1.9; color:#333;">한국은행의 기준금리 동결 결정은 주식 시장과 경제 전반에 큰 영향을 미칠 수 있습니다. 기준금리는 금융 시장에 큰 영향을 미치는데요, 이는 저금리 率인 대출과 예금에 영향을 주게 됩니다. 따라서 이러한 결정은 주식 시장과 경제 전반에 큰 영향을 미칠 수 있습니다.</div><br>
+<div style="font-size:16px; line-height:1.9; color:#333;">투자자들은 이러한 결정에 주의해야 합니다. 기준금리가 낮으면 대출과 예금에 영향을 미치기 때문에, 투자자들은 이러한 영향을 고려하여投資戦略을 수립해야 합니다. 예를 들어, 기준금리가 낮으면 대출이 쉬워지기 때문에, 투자자들은 대출을 통한 투자를 고려할 수 있습니다.</div><br>
+<div style="font-size:16px; line-height:1.9; color:#333;">저는 개인적으로 이러한 quyết定的 영향을 주의해서 살펴보고 있습니다. 투자자들은 이러한 quyết定的 영향을 고려하여投資戦略을 수립해야 합니다. 그리고 항상 주의해야 합니다. 주식 시장은 항상 변동성이 크기 때문에, 투자자들은 이러한 변동성을 고려하여投資戦略을 수립해야 합니다.</div><br>
+<div style="font-size:16px; line-height:1.9; color:#333;">역사적으로 부자는 언제나 불황에서 나왔습니다. 다들 화이팅입니다!!</div><br>
+<div style="font-size:16px; line-height:1.9; color:#333;">by K</div><br><br><br><div style="font-size:14px; color:#888; line-height:2;">#코스피 #기준금리 #한국은행 #주식 시장 #경제 전망</div></div>
+            <button class="copy-btn body-copy-btn" onclick="copyHtml('body-naver-0')">본문 복사 (네이버)</button>
+            <div class="img-save-row"><button class="img-save-btn" onclick="saveImage('https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4ODQ4MjF8MHwxfHNlYXJjaHwxfHxTdG9jayUyMG1hcmtldHxlbnwwfDB8fHwxNzcyMzEwMTI3fDA&ixlib=rb-4.1.0&q=80&w=1080', 'blog_img_0_0.jpg')">도입부 이미지 저장</button></div>
+        </div>
+    </div>
+
+    <div class="draft-card">
+        <div class="title-row">
+            <h2 id="title-1">2026년 3월, 삼성전자와 SK하이닉스의 주가 전망</h2>
+            <button class="copy-btn" onclick="copyText('title-1')">제목 복사</button>
+        </div>
+        <div class="meta-info">
+            <span>읽기 10분</span>
+            <span class="tag">반도체</span><span class="tag">주가</span><span class="tag">경제전망</span><span class="tag">투자</span><span class="tag">삼성전자</span>
+        </div>
+        <div class="body-section">
+            <div class="body-html" id="body-rendered-1"><p>안녕하세요, 여러분. 오늘은 <b>삼성전자</b>와 <b>SK하이닉스</b>의 최근 주가 급등에 대해 이야기해 보겠습니다. 개인적으로 저는 이 두 회사에 큰 관심을 가지고 있기 때문에, 오늘의 주제에 대해 매우 흥미롭게 생각하고 있습니다.</p>
+<img src="https://images.unsplash.com/photo-1772182104431-5a00158fd8e2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4ODQ4MjF8MHwxfHNlYXJjaHwxfHxTYW1zdW5nJTIwRWxlY3Ryb25pY3MlMjBzdG9jayUyMHByaWNlfGVufDB8MHx8fDE3NzIzMTAwNDh8MA&ixlib=rb-4.1.0&q=80&w=1080" alt="[돈이 보이는 경제] 진격의 반도체…'삼전닉스' 주가 어디까지?" style="width:100%; border-radius:8px; margin:16px 0 4px;" /><p style="font-size:12px; color:#999; text-align:center; margin:0 0 16px;">Photo by Amanz on Unsplash</p>
+
+<p>먼저, 우리나라의 대표적인 반도체 기업인 삼성전자와 SK하이닉스의 주가가 최근 어떻게 변화했는지 살펴보겠습니다. 지난 1년 동안, 삼성전자의 주가는 약 4배로 뛰었으며, SK하이닉스의 주가는 약 5배로 상승했습니다. 이러한 급등은 우리나라의 증시를 밀어 올리는 쌍두마차로 불릴 수 있습니다.</p>
+<h3>무슨 일이 일어나고 있는가?</h3>
+<p>이러한 급등의 이유 중 하나는 반도체 산업의 성장입니다. 최근 몇 년 동안, 반도체의 수급 불균형으로 인해 가격이 상승했습니다. 이러한 상황에서, 삼성전자와 SK하이닉스와 같은 주요 반도체 기업들의 주가는 반드시 상승했습니다. 또한, 우리나라의 정부가 반도체 산업을 지원하고 있는 것도 이러한 주가 상승에 영향을 미쳤습니다.</p>
+<p>이러한 상황을 비유로 설명하면, 반도체 산업이 한 강을 이루고 있다고 생각할 수 있습니다. 이 강의 물길이 강할수록, 삼성전자와 SK하이닉스와 같은 주요 반도체 기업들은 더 많은 이익을 얻을 수 있습니다. 따라서, 이러한 기업들의 주가는 반도체 산업의 성장과 함께 상승하게 됩니다.</p>
+<h3>앞으로의 전망은?</h3>
+<p>앞으로의 전망을 살펴보겠습니다. 현재, 반도체 산업은 여전히 성장하고 있으며, 이러한 성장은 앞으로도 지속될 것으로 예상됩니다. 따라서, 삼성전자와 SK하이닉스의 주가는 여전히 상승할 가능성이 있습니다. 그러나, 주식 시장은 언제나 예측할 수 없기 때문에, 투자 전략을 세우는 데에는 항상 주의가 필요합니다.</p>
+<p>이러한 상황을 다시 비유로 설명하면, 투자자는 항상 바다를 항해하는 선장과 같습니다. 바다의 파도는 언제나 예측할 수 없기 때문에, 선장은 항상 주의를 기울여야 합니다. 이러한 비유는 투자자들이 항상 주의를 기울이고, 자신의 투자 전략을 신중하게 세우라는 메시지를 전달합니다.</p>
+<p>마지막으로, 저는 여러분에게 항상 주의를 기울이고, 자신의 투자 전략을 신중하게 세우라고 말하고 싶습니다. 또한, 반도체 산업의 성장에 관심을 가지고, 이러한 산업의 발전에 기여하는 기업들의 주가에 대한 정보를 얻는 것이 중요하다고 생각합니다.</p>
+<p>오늘의 글을 마치며, "역사적으로 부자는 언제나 불황에서 나왔습니다"라는 격언을 기억하세요. 그리고, 다들 좋은 투자 되세요^^</p>
+<p>by K</p>
+<img src="https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4ODQ4MjF8MHwxfHNlYXJjaHwxfHxDaXR5JTIwU3VucmlzZXxlbnwwfDB8fHwxNzcyMzEwOTI1fDA&ixlib=rb-4.1.0&q=80&w=1080" alt="[돈이 보이는 경제] 진격의 반도체…'삼전닉스' 주가 어디까지?" style="width:100%; border-radius:8px; margin:24px 0 4px;" /><p style="font-size:12px; color:#999; text-align:center; margin:0 0 8px;">Photo by ben o'bro on Unsplash</p></div>
+            <div id="body-naver-1" style="display:none"><div style="font-size:16px; line-height:1.9; color:#333;">안녕하세요, 여러분. 오늘은 <b style="font-weight:bold; color:#1a1a1a;">삼성전자</b>와 <b style="font-weight:bold; color:#1a1a1a;">SK하이닉스</b>의 최근 주가 급등에 대해 이야기해 보겠습니다. 개인적으로 저는 이 두 회사에 큰 관심을 가지고 있기 때문에, 오늘의 주제에 대해 매우 흥미롭게 생각하고 있습니다.</div><br>
+<div style="text-align:center; margin:16px 0; padding:12px; background:#f0f7f0; border:1px dashed #4CAF50; border-radius:8px; font-size:14px; color:#666;">📷 이미지 저장 후 여기에 삽입</div><br><div style="font-size:13px; color:#999; text-align:center; line-height:1.4;">Photo by Amanz on Unsplash</div>
+
+<div style="font-size:16px; line-height:1.9; color:#333;">먼저, 우리나라의 대표적인 반도체 기업인 삼성전자와 SK하이닉스의 주가가 최근 어떻게 변화했는지 살펴보겠습니다. 지난 1년 동안, 삼성전자의 주가는 약 4배로 뛰었으며, SK하이닉스의 주가는 약 5배로 상승했습니다. 이러한 급등은 우리나라의 증시를 밀어 올리는 쌍두마차로 불릴 수 있습니다.</div><br>
+<br><blockquote style="border-left:4px solid #4CAF50; margin:20px 0 12px; padding:10px 16px; background-color:#f8f9fa;"><b style="font-weight:bold; color:#1a1a1a;">무슨 일이 일어나고 있는가?</b></blockquote>
+<div style="font-size:16px; line-height:1.9; color:#333;">이러한 급등의 이유 중 하나는 반도체 산업의 성장입니다. 최근 몇 년 동안, 반도체의 수급 불균형으로 인해 가격이 상승했습니다. 이러한 상황에서, 삼성전자와 SK하이닉스와 같은 주요 반도체 기업들의 주가는 반드시 상승했습니다. 또한, 우리나라의 정부가 반도체 산업을 지원하고 있는 것도 이러한 주가 상승에 영향을 미쳤습니다.</div><br>
+<div style="font-size:16px; line-height:1.9; color:#333;">이러한 상황을 비유로 설명하면, 반도체 산업이 한 강을 이루고 있다고 생각할 수 있습니다. 이 강의 물길이 강할수록, 삼성전자와 SK하이닉스와 같은 주요 반도체 기업들은 더 많은 이익을 얻을 수 있습니다. 따라서, 이러한 기업들의 주가는 반도체 산업의 성장과 함께 상승하게 됩니다.</div><br>
+<br><blockquote style="border-left:4px solid #4CAF50; margin:20px 0 12px; padding:10px 16px; background-color:#f8f9fa;"><b style="font-weight:bold; color:#1a1a1a;">앞으로의 전망은?</b></blockquote>
+<div style="font-size:16px; line-height:1.9; color:#333;">앞으로의 전망을 살펴보겠습니다. 현재, 반도체 산업은 여전히 성장하고 있으며, 이러한 성장은 앞으로도 지속될 것으로 예상됩니다. 따라서, 삼성전자와 SK하이닉스의 주가는 여전히 상승할 가능성이 있습니다. 그러나, 주식 시장은 언제나 예측할 수 없기 때문에, 투자 전략을 세우는 데에는 항상 주의가 필요합니다.</div><br>
+<div style="font-size:16px; line-height:1.9; color:#333;">이러한 상황을 다시 비유로 설명하면, 투자자는 항상 바다를 항해하는 선장과 같습니다. 바다의 파도는 언제나 예측할 수 없기 때문에, 선장은 항상 주의를 기울여야 합니다. 이러한 비유는 투자자들이 항상 주의를 기울이고, 자신의 투자 전략을 신중하게 세우라는 메시지를 전달합니다.</div><br>
+<div style="font-size:16px; line-height:1.9; color:#333;">마지막으로, 저는 여러분에게 항상 주의를 기울이고, 자신의 투자 전략을 신중하게 세우라고 말하고 싶습니다. 또한, 반도체 산업의 성장에 관심을 가지고, 이러한 산업의 발전에 기여하는 기업들의 주가에 대한 정보를 얻는 것이 중요하다고 생각합니다.</div><br>
+<div style="font-size:16px; line-height:1.9; color:#333;">오늘의 글을 마치며, "역사적으로 부자는 언제나 불황에서 나왔습니다"라는 격언을 기억하세요. 그리고, 다들 좋은 투자 되세요^^</div><br>
+<div style="font-size:16px; line-height:1.9; color:#333;">by K</div><br>
+<div style="text-align:center; margin:16px 0; padding:12px; background:#f0f7f0; border:1px dashed #4CAF50; border-radius:8px; font-size:14px; color:#666;">📷 이미지 저장 후 여기에 삽입</div><br><div style="font-size:13px; color:#999; text-align:center; line-height:1.4;">Photo by ben o'bro on Unsplash</div><br><br><div style="font-size:14px; color:#888; line-height:2;">#반도체 #주가 #경제전망 #투자 #삼성전자</div></div>
+            <button class="copy-btn body-copy-btn" onclick="copyHtml('body-naver-1')">본문 복사 (네이버)</button>
+            <div class="img-save-row"><button class="img-save-btn" onclick="saveImage('https://images.unsplash.com/photo-1772182104431-5a00158fd8e2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4ODQ4MjF8MHwxfHNlYXJjaHwxfHxTYW1zdW5nJTIwRWxlY3Ryb25pY3MlMjBzdG9jayUyMHByaWNlfGVufDB8MHx8fDE3NzIzMTAwNDh8MA&ixlib=rb-4.1.0&q=80&w=1080', 'blog_img_1_0.jpg')">도입부 이미지 저장</button><button class="img-save-btn" onclick="saveImage('https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4ODQ4MjF8MHwxfHNlYXJjaHwxfHxDaXR5JTIwU3VucmlzZXxlbnwwfDB8fHwxNzcyMzEwOTI1fDA&ixlib=rb-4.1.0&q=80&w=1080', 'blog_img_1_1.jpg')">마무리 이미지 저장</button></div>
+        </div>
+    </div>
+
+    <div class="draft-card">
+        <div class="title-row">
+            <h2 id="title-2">2026년 3월, &#x27;빚투&#x27;의 시대</h2>
+            <button class="copy-btn" onclick="copyText('title-2')">제목 복사</button>
+        </div>
+        <div class="meta-info">
+            <span>읽기 10분</span>
+            <span class="tag">빚투</span><span class="tag">신용거래잔고</span><span class="tag">경제전망</span><span class="tag">투자</span><span class="tag">금리</span>
+        </div>
+        <div class="body-section">
+            <div class="body-html" id="body-rendered-2"><p>안녕하세요, 네이버 블로그를 운영하는 직장인 투자자 K입니다. 오늘은 '빚투'와 관련된 최근 뉴스를 중심으로 내용을 전개해 보겠습니다. 최근 domestic 증시가 '불장'을 이어가면서 빚을 내 투자하는 이른바 '빚투' 규모가 빠르게 늘고 있습니다. 오늘(28일) 금융투자협회에 따르면 증권사 신용거래융자 잔고는 지난 26일 기준 32조3,684억원으로...</p>
+<img src="https://images.unsplash.com/photo-1766096847418-9a2ae64c9621?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4ODQ4MjF8MHwxfHNlYXJjaHwxfHxTdG9jayUyMHRyYWRpbmclMjBmcmVuenl8ZW58MHwwfHx8MTc3MjMxMDI1Mnww&ixlib=rb-4.1.0&q=80&w=1080" alt=""6천피 시대" 폭증한 '빚투'…신용거래잔고 32조 돌파" style="width:100%; border-radius:8px; margin:16px 0 4px;" /><p style="font-size:12px; color:#999; text-align:center; margin:0 0 16px;">Photo by Paul Calvo on Unsplash</p>
+
+<p>제 생각에는 '빚투'가 인기인 이유는 여러 가지가 있지만, 가장 큰 이유는 기준금리(한국은행이 정하는 대표 금리)가 낮아졌기 때문입니다. 기준금리가 낮아지면 대출금리가 낮아지고, 따라서 사람들이 빚을 내도 부담이 적어집니다. 이를 통해 투자자들은 더 많은 자금을 투자할 수 있게 되고, 이는 결국 '빚투'의 증가는 물가 상승과도 연관이 있습니다.</p>
+<h3>무슨 일?</h3>
+<p>신용거래가 크게 증가한 이유 중 하나는, 사람들이 더 많은 자금을 투자하기 위해 빚을 내기 때문입니다. 이는 주식시장의 불황에도 불구하고, 투자자들이 여전히 투자를 하고 싶어하기 때문입니다. 이는 '파도'에 비유할 수 있습니다. 파도처럼, 투자자들의 기대와 투자가不断하게 변동하고, 이는 시장의 상황을 더 복잡하게 만들고 있습니다.</p>
+<h3>왜?</h3>
+<p>빚투가为什么 인기인지는, 여러 가지 요인들이 있습니다. 하지만, 가장 큰 이유는 경제적 불안정과 관련이 있습니다. 사람들이 경제가 불안정하다고 생각할 때, 더 많은 자금을 투자하기 위해 빚을 내게 됩니다. 이는 '항공모함'에 비유할 수 있습니다. 항공모함처럼, 빚투는 큰 규모의 자금을 투자할 수 있게 해주지만,同時적으로 큰 위험도 가지고 있습니다.</p>
+<h3>나에게 미치는 영향</h3>
+<p>저는 개인적으로, 빚투의 증가는 우리나라 경제에 큰 영향을 미칠 수 있습니다. 이는 물가 상승과도 연관이 있기 때문입니다. 따라서, 투자자들은 이러한 상황을 잘 살펴본 후, 투자를 해야 합니다. 또한, 기준금리가 낮아진 상황에서, 투자자들은 더 많은 자금을 투자할 수 있게 되었지만, 동시에 더 큰 위험도 가지고 있습니다.</p>
+<p>여러분은 어떻게 생각하시나요? 빚투의 증가는 우리나라 경제에 긍정적인 영향을 미칠까요, 아니면 부정적인 영향을 미칠까요? 저는 개인적으로, 이러한 상황을 잘 살펴본 후, 투자를 해야 한다고 생각합니다. 다들 좋은 투자 되세요^^</p>
+<p>역사적으로 부자는 언제나 불황에서 나왔습니다. 모두 좋은 투자 되세요!!</p>
+<p>by K</p>
+<img src="https://images.unsplash.com/photo-1624811532681-e58a7e25f273?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4ODQ4MjF8MHwxfHNlYXJjaHwxfHxGaW5hbmNpYWwlMjBDcmlzaXN8ZW58MHwwfHx8MTc3MjMxMDkzMHww&ixlib=rb-4.1.0&q=80&w=1080" alt=""6천피 시대" 폭증한 '빚투'…신용거래잔고 32조 돌파" style="width:100%; border-radius:8px; margin:24px 0 4px;" /><p style="font-size:12px; color:#999; text-align:center; margin:0 0 8px;">Photo by Towfiqu barbhuiya on Unsplash</p></div>
+            <div id="body-naver-2" style="display:none"><div style="font-size:16px; line-height:1.9; color:#333;">안녕하세요, 네이버 블로그를 운영하는 직장인 투자자 K입니다. 오늘은 '빚투'와 관련된 최근 뉴스를 중심으로 내용을 전개해 보겠습니다. 최근 domestic 증시가 '불장'을 이어가면서 빚을 내 투자하는 이른바 '빚투' 규모가 빠르게 늘고 있습니다. 오늘(28일) 금융투자협회에 따르면 증권사 신용거래융자 잔고는 지난 26일 기준 32조3,684억원으로...</div><br>
+<div style="text-align:center; margin:16px 0; padding:12px; background:#f0f7f0; border:1px dashed #4CAF50; border-radius:8px; font-size:14px; color:#666;">📷 이미지 저장 후 여기에 삽입</div><br><div style="font-size:13px; color:#999; text-align:center; line-height:1.4;">Photo by Paul Calvo on Unsplash</div>
+
+<div style="font-size:16px; line-height:1.9; color:#333;">제 생각에는 '빚투'가 인기인 이유는 여러 가지가 있지만, 가장 큰 이유는 기준금리(한국은행이 정하는 대표 금리)가 낮아졌기 때문입니다. 기준금리가 낮아지면 대출금리가 낮아지고, 따라서 사람들이 빚을 내도 부담이 적어집니다. 이를 통해 투자자들은 더 많은 자금을 투자할 수 있게 되고, 이는 결국 '빚투'의 증가는 물가 상승과도 연관이 있습니다.</div><br>
+<br><blockquote style="border-left:4px solid #4CAF50; margin:20px 0 12px; padding:10px 16px; background-color:#f8f9fa;"><b style="font-weight:bold; color:#1a1a1a;">무슨 일?</b></blockquote>
+<div style="font-size:16px; line-height:1.9; color:#333;">신용거래가 크게 증가한 이유 중 하나는, 사람들이 더 많은 자금을 투자하기 위해 빚을 내기 때문입니다. 이는 주식시장의 불황에도 불구하고, 투자자들이 여전히 투자를 하고 싶어하기 때문입니다. 이는 '파도'에 비유할 수 있습니다. 파도처럼, 투자자들의 기대와 투자가不断하게 변동하고, 이는 시장의 상황을 더 복잡하게 만들고 있습니다.</div><br>
+<br><blockquote style="border-left:4px solid #4CAF50; margin:20px 0 12px; padding:10px 16px; background-color:#f8f9fa;"><b style="font-weight:bold; color:#1a1a1a;">왜?</b></blockquote>
+<div style="font-size:16px; line-height:1.9; color:#333;">빚투가为什么 인기인지는, 여러 가지 요인들이 있습니다. 하지만, 가장 큰 이유는 경제적 불안정과 관련이 있습니다. 사람들이 경제가 불안정하다고 생각할 때, 더 많은 자금을 투자하기 위해 빚을 내게 됩니다. 이는 '항공모함'에 비유할 수 있습니다. 항공모함처럼, 빚투는 큰 규모의 자금을 투자할 수 있게 해주지만,同時적으로 큰 위험도 가지고 있습니다.</div><br>
+<br><blockquote style="border-left:4px solid #4CAF50; margin:20px 0 12px; padding:10px 16px; background-color:#f8f9fa;"><b style="font-weight:bold; color:#1a1a1a;">나에게 미치는 영향</b></blockquote>
+<div style="font-size:16px; line-height:1.9; color:#333;">저는 개인적으로, 빚투의 증가는 우리나라 경제에 큰 영향을 미칠 수 있습니다. 이는 물가 상승과도 연관이 있기 때문입니다. 따라서, 투자자들은 이러한 상황을 잘 살펴본 후, 투자를 해야 합니다. 또한, 기준금리가 낮아진 상황에서, 투자자들은 더 많은 자금을 투자할 수 있게 되었지만, 동시에 더 큰 위험도 가지고 있습니다.</div><br>
+<div style="font-size:16px; line-height:1.9; color:#333;">여러분은 어떻게 생각하시나요? 빚투의 증가는 우리나라 경제에 긍정적인 영향을 미칠까요, 아니면 부정적인 영향을 미칠까요? 저는 개인적으로, 이러한 상황을 잘 살펴본 후, 투자를 해야 한다고 생각합니다. 다들 좋은 투자 되세요^^</div><br>
+<div style="font-size:16px; line-height:1.9; color:#333;">역사적으로 부자는 언제나 불황에서 나왔습니다. 모두 좋은 투자 되세요!!</div><br>
+<div style="font-size:16px; line-height:1.9; color:#333;">by K</div><br>
+<div style="text-align:center; margin:16px 0; padding:12px; background:#f0f7f0; border:1px dashed #4CAF50; border-radius:8px; font-size:14px; color:#666;">📷 이미지 저장 후 여기에 삽입</div><br><div style="font-size:13px; color:#999; text-align:center; line-height:1.4;">Photo by Towfiqu barbhuiya on Unsplash</div><br><br><div style="font-size:14px; color:#888; line-height:2;">#빚투 #신용거래잔고 #경제전망 #투자 #금리</div></div>
+            <button class="copy-btn body-copy-btn" onclick="copyHtml('body-naver-2')">본문 복사 (네이버)</button>
+            <div class="img-save-row"><button class="img-save-btn" onclick="saveImage('https://images.unsplash.com/photo-1766096847418-9a2ae64c9621?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4ODQ4MjF8MHwxfHNlYXJjaHwxfHxTdG9jayUyMHRyYWRpbmclMjBmcmVuenl8ZW58MHwwfHx8MTc3MjMxMDI1Mnww&ixlib=rb-4.1.0&q=80&w=1080', 'blog_img_2_0.jpg')">도입부 이미지 저장</button><button class="img-save-btn" onclick="saveImage('https://images.unsplash.com/photo-1624811532681-e58a7e25f273?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4ODQ4MjF8MHwxfHNlYXJjaHwxfHxGaW5hbmNpYWwlMjBDcmlzaXN8ZW58MHwwfHx8MTc3MjMxMDkzMHww&ixlib=rb-4.1.0&q=80&w=1080', 'blog_img_2_1.jpg')">마무리 이미지 저장</button></div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        async function copyText(elementId) {
+            var el = document.getElementById(elementId);
+            var text = el.innerText || el.textContent;
+            try {
+                await navigator.clipboard.writeText(text);
+                showToast("복사 완료!");
+            } catch (err) {
+                fallbackCopyText(text);
+            }
+        }
+
+        function copyHtml(elementId) {
+            var el = document.getElementById(elementId);
+
+            // Selection + execCommand: 모바일 리치텍스트 복사에 가장 안정적
+            el.style.display = "block";
+            el.style.position = "fixed";
+            el.style.left = "-9999px";
+            el.style.top = "0";
+            el.style.width = "600px";
+
+            var range = document.createRange();
+            range.selectNodeContents(el);
+            var sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+
+            var ok = false;
+            try {
+                ok = document.execCommand("copy");
+            } catch (e) {}
+
+            sel.removeAllRanges();
+            el.style.display = "none";
+            el.style.position = "";
+            el.style.left = "";
+            el.style.top = "";
+            el.style.width = "";
+
+            if (ok) {
+                showToast("본문 복사 완료! 네이버에 붙여넣기 하세요");
+            } else {
+                try {
+                    var blob = new Blob([el.innerHTML], { type: "text/html" });
+                    var textBlob = new Blob([el.innerText], { type: "text/plain" });
+                    navigator.clipboard.write([new ClipboardItem({ "text/html": blob, "text/plain": textBlob })]);
+                    showToast("본문 복사 완료!");
+                } catch (e2) {
+                    fallbackCopyText(el.innerText);
+                    showToast("텍스트만 복사됨 (브라우저 제한)");
+                }
+            }
+        }
+
+        // ── 이미지 저장: fetch → blob → download (갤러리에 저장 후 네이버 앱에서 삽입) ──
+        async function saveImage(url, filename) {
+            showToast("이미지 다운로드 중...");
+            try {
+                var resp = await fetch(url);
+                var blob = await resp.blob();
+                var a = document.createElement("a");
+                a.href = URL.createObjectURL(blob);
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(a.href);
+                showToast("저장 완료! 네이버 앱에서 이미지 추가하세요");
+            } catch (e) {
+                // 폴백: 새 탭에서 이미지 열기 (길게 눌러서 저장)
+                window.open(url, "_blank");
+                showToast("이미지가 열렸습니다. 길게 눌러 저장하세요");
+            }
+        }
+
+        function fallbackCopyText(text) {
+            var ta = document.createElement("textarea");
+            ta.value = text;
+            ta.style.position = "fixed";
+            ta.style.opacity = "0";
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand("copy");
+            document.body.removeChild(ta);
+        }
+
+        function showToast(msg) {
+            var toast = document.getElementById("toast");
+            toast.textContent = msg;
+            toast.classList.add("show");
+            setTimeout(function() { toast.classList.remove("show"); }, 2000);
+        }
+
+        function toggleMarket(id) {
+            document.getElementById(id).classList.toggle("open");
+        }
+    </script>
+</body>
+</html>
