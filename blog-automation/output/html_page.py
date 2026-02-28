@@ -38,12 +38,14 @@ def _inject_naver_styles(body_html: str, tags: list[str] | None = None) -> str:
     """
     result = body_html
 
-    # ── 소제목: <h3> → <div> 볼드 헤딩 + 구분선 ──
+    # ── 소제목: <h3> → <blockquote> 인용구 스타일 (네이버 앱에서 눈에 띄는 형태) ──
     result = re.sub(
         r"<h3(?:\s[^>]*)?>(.+?)</h3>",
-        r'<div style="font-size:20px; font-weight:bold; color:#2e7d32; '
-        r'padding:12px 0 8px; border-bottom:2px solid #4CAF50;">'
-        r"\1</div><br>",
+        r'<br><blockquote style="border-left:4px solid #4CAF50; '
+        r"margin:20px 0 12px; padding:10px 16px; "
+        r'background-color:#f8f9fa;">'
+        r'<b style="font-size:18px; color:#2e7d32;">\1</b>'
+        r"</blockquote>",
         result,
     )
 
@@ -314,6 +316,42 @@ def _build_html(drafts: list[BlogDraft], run_date: str) -> str:
     <div class="toast" id="toast"></div>
 
     <script>
+        // ── 이미지 base64 캐시: 페이지 로드 시 Unsplash 이미지를 다운로드하여 base64로 변환 ──
+        // 네이버 블로그 앱은 외부 URL 이미지를 붙여넣기로 삽입할 수 없으므로,
+        // 이미지 데이터 자체를 클립보드에 담아야 합니다.
+        var imageCache = {{}};
+        var imagesReady = false;
+
+        async function preloadImages() {{
+            var imgs = document.querySelectorAll('[id^="body-naver-"] img');
+            var promises = [];
+            imgs.forEach(function(img) {{
+                var src = img.getAttribute("src");
+                if (!src || !src.startsWith("http") || imageCache[src]) return;
+                // 복사용은 w=600으로 축소 (클립보드 용량 절약)
+                var smallSrc = src.replace(/w=\\d+/, "w=600");
+                var p = fetch(smallSrc)
+                    .then(function(r) {{ return r.blob(); }})
+                    .then(function(blob) {{
+                        return new Promise(function(resolve) {{
+                            var reader = new FileReader();
+                            reader.onloadend = function() {{
+                                imageCache[src] = reader.result;
+                                resolve();
+                            }};
+                            reader.readAsDataURL(blob);
+                        }});
+                    }})
+                    .catch(function() {{}});
+                promises.push(p);
+            }});
+            await Promise.all(promises);
+            imagesReady = true;
+        }}
+
+        // 페이지 로드 시 백그라운드로 이미지 사전 변환
+        preloadImages();
+
         async function copyText(elementId) {{
             var el = document.getElementById(elementId);
             var text = el.innerText || el.textContent;
@@ -327,12 +365,22 @@ def _build_html(drafts: list[BlogDraft], run_date: str) -> str:
 
         function copyHtml(elementId) {{
             var el = document.getElementById(elementId);
-            // Selection + execCommand 방식: 모바일에서 서식(rich text) 복사에 가장 안정적
-            // 숨겨진 div를 화면 밖에 잠시 표시 → 텍스트 선택 → 복사 → 다시 숨김
+
+            // 이미지 src를 base64로 교체 (네이버 앱에서 이미지가 바로 붙도록)
+            var imgs = el.querySelectorAll("img");
+            var origSrcs = [];
+            imgs.forEach(function(img) {{
+                origSrcs.push(img.getAttribute("src"));
+                var cached = imageCache[img.getAttribute("src")];
+                if (cached) img.setAttribute("src", cached);
+            }});
+
+            // Selection + execCommand: 모바일 리치텍스트 복사에 가장 안정적
             el.style.display = "block";
             el.style.position = "fixed";
             el.style.left = "-9999px";
             el.style.top = "0";
+            el.style.width = "600px";
 
             var range = document.createRange();
             range.selectNodeContents(el);
@@ -350,16 +398,22 @@ def _build_html(drafts: list[BlogDraft], run_date: str) -> str:
             el.style.position = "";
             el.style.left = "";
             el.style.top = "";
+            el.style.width = "";
+
+            // 원본 src 복원
+            imgs.forEach(function(img, i) {{
+                img.setAttribute("src", origSrcs[i]);
+            }});
 
             if (ok) {{
-                showToast("서식 포함 복사 완료! 네이버에 붙여넣기 하세요");
+                showToast("서식+이미지 복사 완료! 네이버에 붙여넣기 하세요");
             }} else {{
-                // execCommand 실패 시 Clipboard API 폴백
+                // Clipboard API 폴백
                 try {{
                     var blob = new Blob([el.innerHTML], {{ type: "text/html" }});
                     var textBlob = new Blob([el.innerText], {{ type: "text/plain" }});
                     navigator.clipboard.write([new ClipboardItem({{ "text/html": blob, "text/plain": textBlob }})]);
-                    showToast("서식 포함 복사 완료!");
+                    showToast("서식+이미지 복사 완료!");
                 }} catch (e2) {{
                     fallbackCopyText(el.innerText);
                     showToast("텍스트만 복사됨 (브라우저 제한)");
