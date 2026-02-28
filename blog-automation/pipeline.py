@@ -248,7 +248,7 @@ def run() -> PipelineResult:
                 ).strip()
                 logger.info("이미지 키워드 번역: '%s' → '%s'", draft.topic, en_keyword)
 
-                image_url, credit_text, _ = search_image(en_keyword, settings.unsplash_access_key)
+                image_url, credit_text, photo_id = search_image(en_keyword, settings.unsplash_access_key)
 
                 # Fallback: 검색 결과 없으면 더 일반적인 키워드로 재시도
                 if not image_url:
@@ -265,20 +265,21 @@ def run() -> PipelineResult:
                         temperature=0.3,
                     ).strip()
                     logger.info("이미지 키워드 fallback: '%s' → '%s'", en_keyword, fallback_keyword)
-                    image_url, credit_text, _ = search_image(fallback_keyword, settings.unsplash_access_key)
+                    image_url, credit_text, photo_id = search_image(fallback_keyword, settings.unsplash_access_key)
 
+                # ── 도입부 이미지 (정보성) ──
+                used_photo_ids: set[str] = set()
                 if image_url:
                     draft.image_url = image_url
                     draft.image_credit = credit_text
+                    used_photo_ids.add(photo_id)
 
-                    # 본문 첫 번째 </p> 뒤에 이미지 + 크레딧 삽입
                     img_html = (
                         f'<img src="{image_url}" alt="{draft.topic}" '
                         f'style="width:100%; border-radius:8px; margin:16px 0 4px;" />'
                         f'<p style="font-size:12px; color:#999; text-align:center; '
                         f'margin:0 0 16px;">{credit_text}</p>'
                     )
-                    # 첫 번째 </p> 뒤에 삽입
                     first_p_end = draft.body_html.find("</p>")
                     if first_p_end != -1:
                         insert_pos = first_p_end + len("</p>")
@@ -286,8 +287,40 @@ def run() -> PipelineResult:
                             draft.body_html[:insert_pos] + "\n" + img_html + "\n" + draft.body_html[insert_pos:]
                         )
                     else:
-                        # </p> 태그가 없으면 본문 맨 앞에 삽입
                         draft.body_html = img_html + "\n" + draft.body_html
+
+                # ── 마무리 이미지 (감성적/심미적) ──
+                try:
+                    end_keyword = call_ai(
+                        system_prompt=(
+                            "Given the blog topic below, suggest an English keyword (1-3 words) "
+                            "for searching a beautiful, aesthetic, emotional photo on Unsplash "
+                            "that would make a great closing image for the article. "
+                            "Think: hopeful sunrise, city skyline at night, peaceful nature, "
+                            "person looking at horizon, etc. Reply with ONLY the keyword."
+                        ),
+                        user_prompt=draft.topic,
+                        gemini_api_key=settings.gemini_api_key,
+                        groq_api_key=settings.groq_api_key,
+                        ai_provider=settings.ai_provider,
+                        temperature=0.5,
+                    ).strip()
+                    logger.info("마무리 이미지 키워드: '%s' → '%s'", draft.topic, end_keyword)
+
+                    end_url, end_credit, end_pid = search_image(
+                        end_keyword, settings.unsplash_access_key, exclude_ids=used_photo_ids,
+                    )
+                    if end_url:
+                        end_img_html = (
+                            f'<img src="{end_url}" alt="{draft.topic}" '
+                            f'style="width:100%; border-radius:8px; margin:24px 0 4px;" />'
+                            f'<p style="font-size:12px; color:#999; text-align:center; '
+                            f'margin:0 0 8px;">{end_credit}</p>'
+                        )
+                        draft.body_html = draft.body_html.rstrip() + "\n" + end_img_html
+                        logger.info("마무리 이미지 삽입 완료: %s", end_credit)
+                except Exception as e2:
+                    logger.warning("마무리 이미지 검색 실패: '%s' — %s", draft.topic, e2)
 
             except Exception as e:
                 logger.warning("이미지 검색/삽입 실패: '%s' — %s", draft.topic, e)
