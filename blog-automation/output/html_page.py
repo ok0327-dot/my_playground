@@ -79,11 +79,24 @@ def _inject_naver_styles(body_html: str, tags: list[str] | None = None) -> str:
         result,
     )
 
-    # ── 이미지: 중앙 정렬 래핑 ──
+    # ── 이미지: 네이버 앱은 <img> 붙여넣기 불가 → 삽입 위치 안내로 교체 ──
     result = re.sub(
-        r'<img\s([^>]*)>',
-        r'<div style="text-align:center; margin:16px 0;">'
-        r'<img \1></div>',
+        r'<div[^>]*>\s*<img[^>]*>\s*</div>\s*'
+        r'(?:<div[^>]*>Photo by[^<]*</div>|<p[^>]*>Photo by[^<]*</p>)?',
+        '<div style="text-align:center; margin:16px 0; padding:12px; '
+        'background:#f0f7f0; border:1px dashed #4CAF50; border-radius:8px; '
+        'font-size:14px; color:#666;">'
+        '📷 이미지 저장 후 여기에 삽입</div><br>',
+        result,
+    )
+    # 래핑 안 된 단독 img+credit도 처리
+    result = re.sub(
+        r'<img[^>]*style="[^"]*width:100%[^>]*/>\s*'
+        r'(?:<p[^>]*>Photo by[^<]*</p>)?',
+        '<div style="text-align:center; margin:16px 0; padding:12px; '
+        'background:#f0f7f0; border:1px dashed #4CAF50; border-radius:8px; '
+        'font-size:14px; color:#666;">'
+        '📷 이미지 저장 후 여기에 삽입</div><br>',
         result,
     )
 
@@ -119,6 +132,18 @@ def _inject_naver_styles(body_html: str, tags: list[str] | None = None) -> str:
     return result
 
 
+def _extract_image_urls(body_html: str) -> list[tuple[str, str]]:
+    """본문 HTML에서 Unsplash 이미지 URL과 크레딧을 추출."""
+    images = []
+    for m in re.finditer(
+        r'<img[^>]*src="(https://images\.unsplash\.com/[^"]+)"[^>]*/>'
+        r'\s*<p[^>]*>(Photo by [^<]+)</p>',
+        body_html,
+    ):
+        images.append((m.group(1), m.group(2)))
+    return images
+
+
 def _build_draft_card(index: int, draft: BlogDraft) -> str:
     """개별 초안 카드 HTML을 생성."""
     title_escaped = html.escape(draft.title)
@@ -126,6 +151,24 @@ def _build_draft_card(index: int, draft: BlogDraft) -> str:
     body_html_rendered = draft.body_html
     # 네이버 복사용 인라인 스타일 HTML (hidden)
     naver_styled = _inject_naver_styles(draft.body_html, tags=draft.tags)
+
+    # 이미지 저장 버튼 생성
+    image_urls = _extract_image_urls(draft.body_html)
+    image_buttons = ""
+    if image_urls:
+        buttons = []
+        for img_idx, (url, credit) in enumerate(image_urls):
+            label = "도입부 이미지" if img_idx == 0 else "마무리 이미지"
+            buttons.append(
+                f'<button class="img-save-btn" onclick="saveImage(\'{url}\', '
+                f'\'blog_img_{index}_{img_idx}.jpg\')">'
+                f'{label} 저장</button>'
+            )
+        image_buttons = (
+            '<div class="img-save-row">'
+            + "".join(buttons)
+            + "</div>"
+        )
 
     tags_html = ""
     if draft.tags:
@@ -159,6 +202,7 @@ def _build_draft_card(index: int, draft: BlogDraft) -> str:
             <div class="body-html" id="body-rendered-{index}">{body_html_rendered}</div>
             <div id="body-naver-{index}" style="display:none">{naver_styled}</div>
             <button class="copy-btn body-copy-btn" onclick="copyHtml('body-naver-{index}')">본문 복사 (네이버)</button>
+            {image_buttons}
         </div>{market_html}
     </div>"""
 
@@ -266,6 +310,23 @@ def _build_html(drafts: list[BlogDraft], run_date: str) -> str:
             width: 100%;
             margin-top: 8px;
         }}
+        .img-save-row {{
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }}
+        .img-save-btn {{
+            flex: 1;
+            background: #1976D2;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }}
+        .img-save-btn:active {{ background: #1565C0; }}
 
         .market-toggle {{
             background: none;
@@ -316,42 +377,6 @@ def _build_html(drafts: list[BlogDraft], run_date: str) -> str:
     <div class="toast" id="toast"></div>
 
     <script>
-        // ── 이미지 base64 캐시: 페이지 로드 시 Unsplash 이미지를 다운로드하여 base64로 변환 ──
-        // 네이버 블로그 앱은 외부 URL 이미지를 붙여넣기로 삽입할 수 없으므로,
-        // 이미지 데이터 자체를 클립보드에 담아야 합니다.
-        var imageCache = {{}};
-        var imagesReady = false;
-
-        async function preloadImages() {{
-            var imgs = document.querySelectorAll('[id^="body-naver-"] img');
-            var promises = [];
-            imgs.forEach(function(img) {{
-                var src = img.getAttribute("src");
-                if (!src || !src.startsWith("http") || imageCache[src]) return;
-                // 복사용은 w=600으로 축소 (클립보드 용량 절약)
-                var smallSrc = src.replace(/w=\\d+/, "w=600");
-                var p = fetch(smallSrc)
-                    .then(function(r) {{ return r.blob(); }})
-                    .then(function(blob) {{
-                        return new Promise(function(resolve) {{
-                            var reader = new FileReader();
-                            reader.onloadend = function() {{
-                                imageCache[src] = reader.result;
-                                resolve();
-                            }};
-                            reader.readAsDataURL(blob);
-                        }});
-                    }})
-                    .catch(function() {{}});
-                promises.push(p);
-            }});
-            await Promise.all(promises);
-            imagesReady = true;
-        }}
-
-        // 페이지 로드 시 백그라운드로 이미지 사전 변환
-        preloadImages();
-
         async function copyText(elementId) {{
             var el = document.getElementById(elementId);
             var text = el.innerText || el.textContent;
@@ -365,15 +390,6 @@ def _build_html(drafts: list[BlogDraft], run_date: str) -> str:
 
         function copyHtml(elementId) {{
             var el = document.getElementById(elementId);
-
-            // 이미지 src를 base64로 교체 (네이버 앱에서 이미지가 바로 붙도록)
-            var imgs = el.querySelectorAll("img");
-            var origSrcs = [];
-            imgs.forEach(function(img) {{
-                origSrcs.push(img.getAttribute("src"));
-                var cached = imageCache[img.getAttribute("src")];
-                if (cached) img.setAttribute("src", cached);
-            }});
 
             // Selection + execCommand: 모바일 리치텍스트 복사에 가장 안정적
             el.style.display = "block";
@@ -400,24 +416,39 @@ def _build_html(drafts: list[BlogDraft], run_date: str) -> str:
             el.style.top = "";
             el.style.width = "";
 
-            // 원본 src 복원
-            imgs.forEach(function(img, i) {{
-                img.setAttribute("src", origSrcs[i]);
-            }});
-
             if (ok) {{
-                showToast("서식+이미지 복사 완료! 네이버에 붙여넣기 하세요");
+                showToast("본문 복사 완료! 네이버에 붙여넣기 하세요");
             }} else {{
-                // Clipboard API 폴백
                 try {{
                     var blob = new Blob([el.innerHTML], {{ type: "text/html" }});
                     var textBlob = new Blob([el.innerText], {{ type: "text/plain" }});
                     navigator.clipboard.write([new ClipboardItem({{ "text/html": blob, "text/plain": textBlob }})]);
-                    showToast("서식+이미지 복사 완료!");
+                    showToast("본문 복사 완료!");
                 }} catch (e2) {{
                     fallbackCopyText(el.innerText);
                     showToast("텍스트만 복사됨 (브라우저 제한)");
                 }}
+            }}
+        }}
+
+        // ── 이미지 저장: fetch → blob → download (갤러리에 저장 후 네이버 앱에서 삽입) ──
+        async function saveImage(url, filename) {{
+            showToast("이미지 다운로드 중...");
+            try {{
+                var resp = await fetch(url);
+                var blob = await resp.blob();
+                var a = document.createElement("a");
+                a.href = URL.createObjectURL(blob);
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(a.href);
+                showToast("저장 완료! 네이버 앱에서 이미지 추가하세요");
+            }} catch (e) {{
+                // 폴백: 새 탭에서 이미지 열기 (길게 눌러서 저장)
+                window.open(url, "_blank");
+                showToast("이미지가 열렸습니다. 길게 눌러 저장하세요");
             }}
         }}
 
