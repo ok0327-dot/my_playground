@@ -32,8 +32,11 @@ def _strip_html_tags(raw: str) -> str:
 def _build_draft_card(index: int, draft: BlogDraft) -> str:
     """개별 초안 카드 HTML을 생성."""
     title_escaped = html.escape(draft.title)
+    # 복사용 순수 텍스트 (hidden)
     clean_body = _strip_html_tags(draft.body_html)
-    body_escaped = html.escape(clean_body)
+    body_escaped_for_copy = html.escape(clean_body)
+    # 렌더링용 HTML 본문 (그대로 출력)
+    body_html_rendered = draft.body_html
 
     tags_html = ""
     if draft.tags:
@@ -64,7 +67,8 @@ def _build_draft_card(index: int, draft: BlogDraft) -> str:
             {tags_html}
         </div>
         <div class="body-section">
-            <div class="body-text" id="body-{index}">{body_escaped}</div>
+            <div class="body-html" id="body-rendered-{index}">{body_html_rendered}</div>
+            <div class="body-text" id="body-{index}" style="display:none">{body_escaped_for_copy}</div>
             <button class="copy-btn body-copy-btn" onclick="copyText('body-{index}')">본문 복사</button>
         </div>{market_html}
     </div>"""
@@ -150,6 +154,23 @@ def _build_html(drafts: list[BlogDraft], run_date: str) -> str:
         }}
 
         .body-section {{ position: relative; margin-top: 8px; }}
+        .body-html {{
+            background: #fafafa;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 0.95rem;
+            line-height: 1.7;
+            word-break: keep-all;
+            max-height: 500px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }}
+        .body-html h3 {{ font-size: 1.05rem; margin: 16px 0 8px; color: #2e7d32; }}
+        .body-html p {{ margin-bottom: 10px; }}
+        .body-html table {{ width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.85rem; }}
+        .body-html th, .body-html td {{ border: 1px solid #ddd; padding: 6px 8px; text-align: left; }}
+        .body-html th {{ background: #f0f0f0; }}
         .body-text {{
             background: #fafafa;
             border: 1px solid #eee;
