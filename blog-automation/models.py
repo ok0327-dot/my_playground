@@ -60,6 +60,9 @@ class BlogDraft:
     coupang_links: list[str] = field(default_factory=list)
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
     status: str = "draft"  # draft / reviewed / published
+    # Unsplash 이미지
+    image_url: str = ""           # Unsplash 이미지 URL
+    image_credit: str = ""        # "Photo by {name} on Unsplash"
     # SEO 메타데이터
     tags: list[str] = field(default_factory=list)
     meta_description: str = ""

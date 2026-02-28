@@ -42,6 +42,8 @@ class Settings:
     coupang_secret_key: str = field(repr=False, default="")
     # FRED API (선택 / Optional)
     fred_api_key: str = field(repr=False, default="")
+    # Unsplash (선택 — 없으면 이미지 검색 건너뜀 / Optional — skip image search if empty)
+    unsplash_access_key: str = field(repr=False, default="")
     # 출력 설정 / Output settings
     output_dir: str = "outputs"
     save_local_markdown: bool = True
@@ -76,6 +78,7 @@ class Settings:
             coupang_access_key=os.getenv("COUPANG_ACCESS_KEY", ""),
             coupang_secret_key=os.getenv("COUPANG_SECRET_KEY", ""),
             fred_api_key=os.getenv("FRED_API_KEY", ""),
+            unsplash_access_key=os.getenv("UNSPLASH_ACCESS_KEY", ""),
             output_dir=os.getenv("OUTPUT_DIR", "outputs"),
             save_local_markdown=os.getenv("SAVE_LOCAL_MARKDOWN", "true").lower() == "true",
             generate_html_viewer=os.getenv("GENERATE_HTML_VIEWER", "true").lower() == "true",

@@ -47,6 +47,7 @@ jobs:
           COUPANG_ACCESS_KEY: ${{ secrets.COUPANG_ACCESS_KEY }}
           COUPANG_SECRET_KEY: ${{ secrets.COUPANG_SECRET_KEY }}
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
           SAVE_LOCAL_MARKDOWN: "true"
           GENERATE_HTML_VIEWER: "true"
           OUTPUT_DIR: outputs

@@ -197,6 +197,7 @@ def _build_html(drafts: list[BlogDraft], run_date: str) -> str:
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
         }}
+        .body-html img {{ width: 100%; border-radius: 8px; margin: 12px 0; }}
         .body-html h3 {{ font-size: 1.05rem; margin: 16px 0 8px; color: #2e7d32; }}
         .body-html p {{ margin-bottom: 10px; }}
         .body-html table {{ width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.85rem; }}

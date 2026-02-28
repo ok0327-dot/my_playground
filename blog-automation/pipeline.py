@@ -225,6 +225,73 @@ def run() -> PipelineResult:
             logger.exception("초안 생성 실패: '%s'", topic.keyword)
             result.errors.append(f"writer({topic.keyword}): {e}")
 
+    # ── Step 3.5: Unsplash 이미지 검색 (선택) ──
+    if settings.unsplash_access_key and result.drafts:
+        logger.info("── Step 3.5: Unsplash 이미지 검색 ──")
+        from collectors.unsplash import search_image
+
+        for draft in result.drafts:
+            if settings.dry_run:
+                logger.info("[DRY_RUN] 이미지 검색 건너뜀: '%s'", draft.topic)
+                continue
+
+            try:
+                # 토픽 키워드를 영어로 번역 (AI 사용)
+                from ai.providers import call_ai
+                en_keyword = call_ai(
+                    system_prompt="Translate the following Korean keyword to English for image search. Reply with ONLY the English keyword, nothing else.",
+                    user_prompt=draft.topic,
+                    gemini_api_key=settings.gemini_api_key,
+                    groq_api_key=settings.groq_api_key,
+                    ai_provider=settings.ai_provider,
+                    temperature=0.0,
+                ).strip()
+                logger.info("이미지 키워드 번역: '%s' → '%s'", draft.topic, en_keyword)
+
+                image_url, credit_text, _ = search_image(en_keyword, settings.unsplash_access_key)
+
+                # Fallback: 검색 결과 없으면 더 일반적인 키워드로 재시도
+                if not image_url:
+                    fallback_keyword = call_ai(
+                        system_prompt=(
+                            "The Unsplash image search returned no results for the keyword below. "
+                            "Suggest a shorter, more generic English keyword (1-3 words) that would "
+                            "find a relevant, visually appealing photo. Reply with ONLY the keyword."
+                        ),
+                        user_prompt=en_keyword,
+                        gemini_api_key=settings.gemini_api_key,
+                        groq_api_key=settings.groq_api_key,
+                        ai_provider=settings.ai_provider,
+                        temperature=0.3,
+                    ).strip()
+                    logger.info("이미지 키워드 fallback: '%s' → '%s'", en_keyword, fallback_keyword)
+                    image_url, credit_text, _ = search_image(fallback_keyword, settings.unsplash_access_key)
+
+                if image_url:
+                    draft.image_url = image_url
+                    draft.image_credit = credit_text
+
+                    # 본문 첫 번째 </p> 뒤에 이미지 + 크레딧 삽입
+                    img_html = (
+                        f'<img src="{image_url}" alt="{draft.topic}" '
+                        f'style="width:100%; border-radius:8px; margin:16px 0 4px;" />'
+                        f'<p style="font-size:12px; color:#999; text-align:center; '
+                        f'margin:0 0 16px;">{credit_text}</p>'
+                    )
+                    # 첫 번째 </p> 뒤에 삽입
+                    first_p_end = draft.body_html.find("</p>")
+                    if first_p_end != -1:
+                        insert_pos = first_p_end + len("</p>")
+                        draft.body_html = (
+                            draft.body_html[:insert_pos] + "\n" + img_html + "\n" + draft.body_html[insert_pos:]
+                        )
+                    else:
+                        # </p> 태그가 없으면 본문 맨 앞에 삽입
+                        draft.body_html = img_html + "\n" + draft.body_html
+
+            except Exception as e:
+                logger.warning("이미지 검색/삽입 실패: '%s' — %s", draft.topic, e)
+
     # ── Step 4a: 쿠팡 링크 (선택) ──
     if settings.coupang_access_key and result.drafts:
         logger.info("── Step 4a: 쿠팡 링크 생성 ──")
