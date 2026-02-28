@@ -29,35 +29,91 @@ def _strip_html_tags(raw: str) -> str:
     return text.strip()
 
 
-def _inject_naver_styles(body_html: str) -> str:
-    """네이버 블로그 에디터 호환 인라인 스타일 주입.
+def _inject_naver_styles(body_html: str, tags: list[str] | None = None) -> str:
+    """네이버 블로그 모바일 앱 호환 HTML 생성.
 
-    네이버 SmartEditor는 CSS 클래스를 무시하므로,
-    각 태그에 style 속성을 직접 삽입해야 서식이 유지됩니다.
+    네이버 SmartEditor(모바일)는 <h3>, <p> 등 시맨틱 태그의 스타일을 무시하고,
+    margin 기반 간격도 벗겨내는 경우가 많습니다.
+    → <div> + 인라인 스타일 + 빈 줄(<br>) 간격으로 변환하여 안정적으로 서식 유지.
     """
-    replacements = [
-        # 소제목
-        (r"<h3(?:\s[^>]*)?>",
-         '<h3 style="font-size:20px; font-weight:bold; color:#333; '
-         'margin:24px 0 12px; padding-bottom:8px; border-bottom:2px solid #4CAF50;">'),
-        # 문단
-        (r"<p(?:\s[^>]*)?>",
-         '<p style="font-size:16px; line-height:1.9; margin-bottom:14px; color:#333;">'),
-        # 강조
-        (r"<b(?:\s[^>]*)?>",
-         '<b style="font-weight:bold; color:#1a1a1a;">'),
-        # 표
-        (r"<table(?:\s[^>]*)?>",
-         '<table style="width:100%; border-collapse:collapse; margin:20px 0; font-size:14px;">'),
-        (r"<th(?:\s[^>]*)?>",
-         '<th style="background:#f5f5f5; border:1px solid #ddd; padding:10px 12px; '
-         'text-align:center; font-weight:bold;">'),
-        (r"<td(?:\s[^>]*)?>",
-         '<td style="border:1px solid #ddd; padding:10px 12px;">'),
-    ]
     result = body_html
-    for pattern, replacement in replacements:
-        result = re.sub(pattern, replacement, result)
+
+    # ── 소제목: <h3> → <div> 볼드 헤딩 + 구분선 ──
+    result = re.sub(
+        r"<h3(?:\s[^>]*)?>(.+?)</h3>",
+        r'<div style="font-size:20px; font-weight:bold; color:#2e7d32; '
+        r'padding:12px 0 8px; border-bottom:2px solid #4CAF50;">'
+        r"\1</div><br>",
+        result,
+    )
+
+    # ── 문단: <p> → <div> + <br> 간격 ──
+    # 크레딧 문단(Photo by)은 별도 스타일 유지
+    def _replace_p(m: re.Match) -> str:
+        attrs = m.group(1) or ""
+        content = m.group(2)
+        # 이미지 크레딧 문단은 원본 스타일 보존
+        if "font-size:12px" in attrs or "Photo by" in content:
+            return (
+                f'<div style="font-size:13px; color:#999; text-align:center; '
+                f'line-height:1.4;">{content}</div>'
+            )
+        return (
+            f'<div style="font-size:16px; line-height:1.9; color:#333;">'
+            f"{content}</div><br>"
+        )
+
+    result = re.sub(
+        r"<p(?:\s([^>]*))?>(.+?)</p>",
+        _replace_p,
+        result,
+        flags=re.DOTALL,
+    )
+
+    # ── 강조 ──
+    result = re.sub(
+        r"<b(?:\s[^>]*)?>",
+        '<b style="font-weight:bold; color:#1a1a1a;">',
+        result,
+    )
+
+    # ── 이미지: 중앙 정렬 래핑 ──
+    result = re.sub(
+        r'<img\s([^>]*)>',
+        r'<div style="text-align:center; margin:16px 0;">'
+        r'<img \1></div>',
+        result,
+    )
+
+    # ── 표 ──
+    result = re.sub(
+        r"<table(?:\s[^>]*)?>",
+        '<table style="width:100%; border-collapse:collapse; margin:16px 0; font-size:14px;">',
+        result,
+    )
+    result = re.sub(
+        r"<th(?:\s[^>]*)?>",
+        '<th style="background:#f5f5f5; border:1px solid #ddd; padding:10px 12px; '
+        'text-align:center; font-weight:bold;">',
+        result,
+    )
+    result = re.sub(
+        r"<td(?:\s[^>]*)?>",
+        '<td style="border:1px solid #ddd; padding:10px 12px;">',
+        result,
+    )
+
+    # ── 연속 <br> 정리 (3개 이상 → 2개로) ──
+    result = re.sub(r"(<br\s*/?>){3,}", "<br><br>", result)
+
+    # ── 하단에 태그(해시태그) 추가 ──
+    if tags:
+        tag_line = " ".join(f"#{t}" for t in tags)
+        result += (
+            f'<br><br><div style="font-size:14px; color:#888; '
+            f'line-height:2;">{tag_line}</div>'
+        )
+
     return result
 
 
@@ -67,7 +123,7 @@ def _build_draft_card(index: int, draft: BlogDraft) -> str:
     # 뷰어 렌더링용 HTML
     body_html_rendered = draft.body_html
     # 네이버 복사용 인라인 스타일 HTML (hidden)
-    naver_styled = _inject_naver_styles(draft.body_html)
+    naver_styled = _inject_naver_styles(draft.body_html, tags=draft.tags)
 
     tags_html = ""
     if draft.tags:
@@ -269,22 +325,45 @@ def _build_html(drafts: list[BlogDraft], run_date: str) -> str:
             }}
         }}
 
-        async function copyHtml(elementId) {{
+        function copyHtml(elementId) {{
             var el = document.getElementById(elementId);
-            var htmlContent = el.innerHTML;
+            // Selection + execCommand 방식: 모바일에서 서식(rich text) 복사에 가장 안정적
+            // 숨겨진 div를 화면 밖에 잠시 표시 → 텍스트 선택 → 복사 → 다시 숨김
+            el.style.display = "block";
+            el.style.position = "fixed";
+            el.style.left = "-9999px";
+            el.style.top = "0";
+
+            var range = document.createRange();
+            range.selectNodeContents(el);
+            var sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+
+            var ok = false;
             try {{
-                var blob = new Blob([htmlContent], {{ type: "text/html" }});
-                var textBlob = new Blob([el.innerText], {{ type: "text/plain" }});
-                var item = new ClipboardItem({{
-                    "text/html": blob,
-                    "text/plain": textBlob
-                }});
-                await navigator.clipboard.write([item]);
-                showToast("서식 포함 복사 완료! 네이버에 바로 붙여넣기 하세요");
-            }} catch (err) {{
-                // Clipboard API 미지원 시 텍스트 복사로 폴백
-                fallbackCopyText(el.innerText);
-                showToast("텍스트만 복사됨 (브라우저 제한)");
+                ok = document.execCommand("copy");
+            }} catch (e) {{}}
+
+            sel.removeAllRanges();
+            el.style.display = "none";
+            el.style.position = "";
+            el.style.left = "";
+            el.style.top = "";
+
+            if (ok) {{
+                showToast("서식 포함 복사 완료! 네이버에 붙여넣기 하세요");
+            }} else {{
+                // execCommand 실패 시 Clipboard API 폴백
+                try {{
+                    var blob = new Blob([el.innerHTML], {{ type: "text/html" }});
+                    var textBlob = new Blob([el.innerText], {{ type: "text/plain" }});
+                    navigator.clipboard.write([new ClipboardItem({{ "text/html": blob, "text/plain": textBlob }})]);
+                    showToast("서식 포함 복사 완료!");
+                }} catch (e2) {{
+                    fallbackCopyText(el.innerText);
+                    showToast("텍스트만 복사됨 (브라우저 제한)");
+                }}
             }}
         }}
 
