@@ -29,14 +29,45 @@ def _strip_html_tags(raw: str) -> str:
     return text.strip()
 
 
+def _inject_naver_styles(body_html: str) -> str:
+    """네이버 블로그 에디터 호환 인라인 스타일 주입.
+
+    네이버 SmartEditor는 CSS 클래스를 무시하므로,
+    각 태그에 style 속성을 직접 삽입해야 서식이 유지됩니다.
+    """
+    replacements = [
+        # 소제목
+        (r"<h3(?:\s[^>]*)?>",
+         '<h3 style="font-size:20px; font-weight:bold; color:#333; '
+         'margin:24px 0 12px; padding-bottom:8px; border-bottom:2px solid #4CAF50;">'),
+        # 문단
+        (r"<p(?:\s[^>]*)?>",
+         '<p style="font-size:16px; line-height:1.9; margin-bottom:14px; color:#333;">'),
+        # 강조
+        (r"<b(?:\s[^>]*)?>",
+         '<b style="font-weight:bold; color:#1a1a1a;">'),
+        # 표
+        (r"<table(?:\s[^>]*)?>",
+         '<table style="width:100%; border-collapse:collapse; margin:20px 0; font-size:14px;">'),
+        (r"<th(?:\s[^>]*)?>",
+         '<th style="background:#f5f5f5; border:1px solid #ddd; padding:10px 12px; '
+         'text-align:center; font-weight:bold;">'),
+        (r"<td(?:\s[^>]*)?>",
+         '<td style="border:1px solid #ddd; padding:10px 12px;">'),
+    ]
+    result = body_html
+    for pattern, replacement in replacements:
+        result = re.sub(pattern, replacement, result)
+    return result
+
+
 def _build_draft_card(index: int, draft: BlogDraft) -> str:
     """개별 초안 카드 HTML을 생성."""
     title_escaped = html.escape(draft.title)
-    # 복사용 순수 텍스트 (hidden)
-    clean_body = _strip_html_tags(draft.body_html)
-    body_escaped_for_copy = html.escape(clean_body)
-    # 렌더링용 HTML 본문 (그대로 출력)
+    # 뷰어 렌더링용 HTML
     body_html_rendered = draft.body_html
+    # 네이버 복사용 인라인 스타일 HTML (hidden)
+    naver_styled = _inject_naver_styles(draft.body_html)
 
     tags_html = ""
     if draft.tags:
@@ -68,8 +99,8 @@ def _build_draft_card(index: int, draft: BlogDraft) -> str:
         </div>
         <div class="body-section">
             <div class="body-html" id="body-rendered-{index}">{body_html_rendered}</div>
-            <div class="body-text" id="body-{index}" style="display:none">{body_escaped_for_copy}</div>
-            <button class="copy-btn body-copy-btn" onclick="copyText('body-{index}')">본문 복사</button>
+            <div id="body-naver-{index}" style="display:none">{naver_styled}</div>
+            <button class="copy-btn body-copy-btn" onclick="copyHtml('body-naver-{index}')">본문 복사 (네이버)</button>
         </div>{market_html}
     </div>"""
 
@@ -171,19 +202,6 @@ def _build_html(drafts: list[BlogDraft], run_date: str) -> str:
         .body-html table {{ width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.85rem; }}
         .body-html th, .body-html td {{ border: 1px solid #ddd; padding: 6px 8px; text-align: left; }}
         .body-html th {{ background: #f0f0f0; }}
-        .body-text {{
-            background: #fafafa;
-            border: 1px solid #eee;
-            border-radius: 8px;
-            padding: 12px;
-            font-size: 0.95rem;
-            line-height: 1.7;
-            white-space: pre-wrap;
-            word-break: keep-all;
-            max-height: 400px;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-        }}
         .body-copy-btn {{
             display: block;
             width: 100%;
@@ -246,23 +264,45 @@ def _build_html(drafts: list[BlogDraft], run_date: str) -> str:
                 await navigator.clipboard.writeText(text);
                 showToast("복사 완료!");
             }} catch (err) {{
-                var ta = document.createElement("textarea");
-                ta.value = text;
-                ta.style.position = "fixed";
-                ta.style.opacity = "0";
-                document.body.appendChild(ta);
-                ta.select();
-                document.execCommand("copy");
-                document.body.removeChild(ta);
-                showToast("복사 완료!");
+                fallbackCopyText(text);
             }}
+        }}
+
+        async function copyHtml(elementId) {{
+            var el = document.getElementById(elementId);
+            var htmlContent = el.innerHTML;
+            try {{
+                var blob = new Blob([htmlContent], {{ type: "text/html" }});
+                var textBlob = new Blob([el.innerText], {{ type: "text/plain" }});
+                var item = new ClipboardItem({{
+                    "text/html": blob,
+                    "text/plain": textBlob
+                }});
+                await navigator.clipboard.write([item]);
+                showToast("서식 포함 복사 완료! 네이버에 바로 붙여넣기 하세요");
+            }} catch (err) {{
+                // Clipboard API 미지원 시 텍스트 복사로 폴백
+                fallbackCopyText(el.innerText);
+                showToast("텍스트만 복사됨 (브라우저 제한)");
+            }}
+        }}
+
+        function fallbackCopyText(text) {{
+            var ta = document.createElement("textarea");
+            ta.value = text;
+            ta.style.position = "fixed";
+            ta.style.opacity = "0";
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand("copy");
+            document.body.removeChild(ta);
         }}
 
         function showToast(msg) {{
             var toast = document.getElementById("toast");
             toast.textContent = msg;
             toast.classList.add("show");
-            setTimeout(function() {{ toast.classList.remove("show"); }}, 1500);
+            setTimeout(function() {{ toast.classList.remove("show"); }}, 2000);
         }}
 
         function toggleMarket(id) {{
