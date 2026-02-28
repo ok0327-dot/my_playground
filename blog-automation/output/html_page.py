@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import html
+import json
 import logging
 import re
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from models import BlogDraft
@@ -144,79 +146,144 @@ def _extract_image_urls(body_html: str) -> list[tuple[str, str]]:
     return images
 
 
-def _build_draft_card(index: int, draft: BlogDraft) -> str:
-    """개별 초안 카드 HTML을 생성."""
-    title_escaped = html.escape(draft.title)
-    # 뷰어 렌더링용 HTML
-    body_html_rendered = draft.body_html
-    # 네이버 복사용 인라인 스타일 HTML (hidden)
-    naver_styled = _inject_naver_styles(draft.body_html, tags=draft.tags)
+def _draft_to_dict(draft: BlogDraft) -> dict:
+    """BlogDraft 객체를 JSON 직렬화 가능한 dict로 변환."""
+    return {
+        "title": draft.title,
+        "topic": draft.topic,
+        "body_html": draft.body_html,
+        "tags": list(draft.tags) if draft.tags else [],
+        "estimated_reading_time": draft.estimated_reading_time or "",
+        "market_summary_lines": [s.summary_line() for s in draft.market_data]
+        if draft.market_data
+        else [],
+    }
 
-    # 이미지 저장 버튼 생성
-    image_urls = _extract_image_urls(draft.body_html)
+
+def _save_daily_json(
+    drafts: list[BlogDraft],
+    data_dir: Path,
+    run_date: str,
+) -> Path:
+    """당일 초안 데이터를 JSON으로 저장. 같은 날 재실행 시 덮어쓰기."""
+    data_dir.mkdir(parents=True, exist_ok=True)
+    file_path = data_dir / f"{run_date}.json"
+    payload = [_draft_to_dict(d) for d in drafts]
+    file_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    logger.info("일별 JSON 저장: %s (%d개 초안)", file_path, len(payload))
+    return file_path
+
+
+def _load_history(
+    data_dir: Path,
+    max_days: int = 7,
+) -> list[tuple[str, list[dict]]]:
+    """docs/data/ 내 JSON 파일들을 날짜 역순으로 로드하고, 오래된 파일은 삭제."""
+    if not data_dir.exists():
+        return []
+
+    cutoff = (datetime.now() - timedelta(days=max_days)).strftime("%Y-%m-%d")
+    result: list[tuple[str, list[dict]]] = []
+
+    for json_file in sorted(data_dir.glob("*.json"), reverse=True):
+        date_str = json_file.stem
+        if date_str < cutoff:
+            json_file.unlink()
+            logger.info("오래된 아카이브 삭제 (cleanup): %s", json_file)
+            continue
+        try:
+            data = json.loads(json_file.read_text(encoding="utf-8"))
+            result.append((date_str, data))
+        except (json.JSONDecodeError, OSError) as exc:
+            logger.warning("JSON 로드 실패: %s — %s", json_file, exc)
+
+    return result
+
+
+def _build_draft_card(uid: str, draft_dict: dict) -> str:
+    """개별 초안 카드 HTML을 생성 (dict 기반, JSON 아카이브 호환)."""
+    title_escaped = html.escape(draft_dict["title"])
+    body_html_rendered = draft_dict["body_html"]
+    tags = draft_dict.get("tags", [])
+    naver_styled = _inject_naver_styles(body_html_rendered, tags=tags)
+
+    image_urls = _extract_image_urls(body_html_rendered)
     image_buttons = ""
     if image_urls:
         buttons = []
-        for img_idx, (url, credit) in enumerate(image_urls):
+        for img_idx, (url, _credit) in enumerate(image_urls):
             label = "도입부 이미지" if img_idx == 0 else "마무리 이미지"
             buttons.append(
                 f'<button class="img-save-btn" onclick="saveImage(\'{url}\', '
-                f'\'blog_img_{index}_{img_idx}.jpg\')">'
-                f'{label} 저장</button>'
+                f'\'blog_img_{uid}_{img_idx}.jpg\')">'
+                f"{label} 저장</button>"
             )
         image_buttons = (
-            '<div class="img-save-row">'
-            + "".join(buttons)
-            + "</div>"
+            '<div class="img-save-row">' + "".join(buttons) + "</div>"
         )
 
     tags_html = ""
-    if draft.tags:
+    if tags:
         spans = "".join(
-            f'<span class="tag">{html.escape(t)}</span>' for t in draft.tags
+            f'<span class="tag">{html.escape(t)}</span>' for t in tags
         )
         tags_html = spans
 
-    reading_time = html.escape(draft.estimated_reading_time) if draft.estimated_reading_time else ""
+    reading_time = html.escape(draft_dict.get("estimated_reading_time", ""))
 
     market_html = ""
-    if draft.market_data:
-        lines = "<br>".join(html.escape(s.summary_line()) for s in draft.market_data)
+    market_lines = draft_dict.get("market_summary_lines", [])
+    if market_lines:
+        lines = "<br>".join(html.escape(ln) for ln in market_lines)
         market_html = f"""
-    <button class="market-toggle" onclick="toggleMarket('market-{index}')">
+    <button class="market-toggle" onclick="toggleMarket('market-{uid}')">
         시장 데이터 보기/숨기기
     </button>
-    <div class="market-data" id="market-{index}">{lines}</div>"""
+    <div class="market-data" id="market-{uid}">{lines}</div>"""
 
     return f"""
     <div class="draft-card">
         <div class="title-row">
-            <h2 id="title-{index}">{title_escaped}</h2>
-            <button class="copy-btn" onclick="copyText('title-{index}')">제목 복사</button>
+            <h2 id="title-{uid}">{title_escaped}</h2>
+            <button class="copy-btn" onclick="copyText('title-{uid}')">제목 복사</button>
         </div>
         <div class="meta-info">
             {f'<span>읽기 {reading_time}</span>' if reading_time else ''}
             {tags_html}
         </div>
         <div class="body-section">
-            <div class="body-html" id="body-rendered-{index}">{body_html_rendered}</div>
-            <div id="body-naver-{index}" style="display:none">{naver_styled}</div>
-            <button class="copy-btn body-copy-btn" onclick="copyHtml('body-naver-{index}')">본문 복사 (네이버)</button>
+            <div class="body-html" id="body-rendered-{uid}">{body_html_rendered}</div>
+            <div id="body-naver-{uid}" style="display:none">{naver_styled}</div>
+            <button class="copy-btn body-copy-btn" onclick="copyHtml('body-naver-{uid}')">본문 복사 (네이버)</button>
             {image_buttons}
         </div>{market_html}
     </div>"""
 
 
-def _build_html(drafts: list[BlogDraft], run_date: str) -> str:
-    """전체 HTML 페이지를 생성."""
-    cards = "\n".join(_build_draft_card(i, d) for i, d in enumerate(drafts))
+def _build_html(daily_data: list[tuple[str, list[dict]]]) -> str:
+    """전체 HTML 페이지를 생성 (다중 날짜 지원)."""
+    sections: list[str] = []
+    for date_str, drafts in daily_data:
+        date_compact = date_str.replace("-", "")
+        cards = "\n".join(
+            _build_draft_card(f"{date_compact}-{i}", d)
+            for i, d in enumerate(drafts)
+        )
+        sections.append(
+            f'<div class="date-section">'
+            f'<div class="date-header">{date_str}</div>'
+            f"{cards}</div>"
+        )
+
+    all_sections = "\n".join(sections)
+    latest_date = daily_data[0][0] if daily_data else ""
 
     return f"""<!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Blog Automation - {run_date}</title>
+    <title>Blog Automation — 최근 7일</title>
     <style>
         * {{ box-sizing: border-box; margin: 0; padding: 0; }}
         body {{
@@ -236,6 +303,16 @@ def _build_html(drafts: list[BlogDraft], run_date: str) -> str:
         }}
         header h1 {{ font-size: 1.4rem; color: #2e7d32; }}
         header .date {{ font-size: 0.85rem; color: #888; margin-top: 4px; }}
+
+        .date-section {{ margin-bottom: 24px; }}
+        .date-header {{
+            font-size: 1rem;
+            font-weight: bold;
+            color: #2e7d32;
+            padding: 8px 0;
+            border-bottom: 2px solid #e0e0e0;
+            margin-bottom: 12px;
+        }}
 
         .draft-card {{
             background: #fff;
@@ -368,11 +445,11 @@ def _build_html(drafts: list[BlogDraft], run_date: str) -> str:
 </head>
 <body>
     <header>
-        <h1>Blog Automation</h1>
-        <div class="date">{run_date}</div>
+        <h1>Blog Automation — 최근 7일</h1>
+        <div class="date">마지막 업데이트: {latest_date}</div>
     </header>
 
-{cards}
+{all_sections}
 
     <div class="toast" id="toast"></div>
 
@@ -483,17 +560,32 @@ def generate_viewer_page(
     docs_dir: str,
     run_date: str,
 ) -> Path:
-    """블로그 초안 뷰어 HTML 페이지를 docs/ 폴더에 저장."""
+    """블로그 초안 뷰어 HTML 페이지를 docs/ 폴더에 저장 (7일 아카이브 포함)."""
     out_path = Path(docs_dir)
     out_path.mkdir(parents=True, exist_ok=True)
+    data_dir = out_path / "data"
 
     file_path = out_path / "index.html"
 
-    if not drafts:
-        logger.info("HTML 뷰어 생성 건너뜀: 초안 없음")
+    # 1) 오늘 초안 → JSON 저장
+    if drafts:
+        _save_daily_json(drafts, data_dir, run_date)
+
+    # 2) 최근 7일 아카이브 로드 + 오래된 파일 정리
+    daily_data = _load_history(data_dir, max_days=7)
+
+    if not daily_data:
+        logger.info("HTML 뷰어 생성 건너뜀: 아카이브 데이터 없음")
         return file_path
 
-    content = _build_html(drafts, run_date)
+    # 3) 전체 HTML 빌드
+    content = _build_html(daily_data)
     file_path.write_text(content, encoding="utf-8")
-    logger.info("HTML 뷰어 저장: %s (%d개 초안)", file_path, len(drafts))
+    total = sum(len(d) for _, d in daily_data)
+    logger.info(
+        "HTML 뷰어 저장: %s (%d일, 총 %d개 초안)",
+        file_path,
+        len(daily_data),
+        total,
+    )
     return file_path
