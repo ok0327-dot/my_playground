@@ -29,6 +29,8 @@ class Settings:
     groq_api_key: str = field(repr=False, default="")
     # AI 제공자 선택 ("gemini", "groq") / AI provider preference
     ai_provider: str = "gemini"
+    # 글쓰기 전용 AI 제공자 (Writer AI provider — 분류와 별도 설정 가능)
+    writer_ai_provider: str = "gemini"
     # Naver
     naver_client_id: str = ""
     naver_client_secret: str = field(repr=False, default="")
@@ -66,6 +68,7 @@ class Settings:
             gemini_api_key=gemini_key,
             groq_api_key=os.getenv("GROQ_API_KEY", ""),
             ai_provider=os.getenv("AI_PROVIDER", "gemini").lower(),
+            writer_ai_provider=os.getenv("WRITER_AI_PROVIDER", "gemini").lower(),
             naver_client_id=_require("NAVER_CLIENT_ID"),
             naver_client_secret=_require("NAVER_CLIENT_SECRET"),
             google_sheets_credentials=creds,

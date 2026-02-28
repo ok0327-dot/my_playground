@@ -218,7 +218,7 @@ def run() -> PipelineResult:
                 market_snapshots=result.market_snapshots,
                 gemini_api_key=settings.gemini_api_key,
                 groq_api_key=settings.groq_api_key,
-                ai_provider=settings.ai_provider,
+                ai_provider=settings.writer_ai_provider,
             )
             result.drafts.append(draft)
         except Exception as e:

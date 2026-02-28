@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+import re
+from datetime import datetime
 
 from config.prompts import WRITER_SYSTEM, WRITER_USER
 from models import BlogDraft, MarketSnapshot, NewsItem
@@ -30,8 +32,14 @@ def _format_market_data(snapshots: list[MarketSnapshot]) -> str:
     return "\n".join(s.summary_line() for s in snapshots)
 
 
+def _strip_code_blocks(text: str) -> str:
+    """AI가 HTML을 코드 블록(```)으로 감싼 경우 제거."""
+    return re.sub(r"```(?:html)?\s*\n?(.*?)\n?\s*```", r"\1", text, flags=re.DOTALL)
+
+
 def _parse_draft(raw: str, topic: str) -> dict:
     """응답에서 제목, 본문, SEO 메타데이터를 분리."""
+    raw = _strip_code_blocks(raw)
     title = topic
     body = raw
     tags: list[str] = []
@@ -106,9 +114,11 @@ def generate_draft(
     ai_provider: str = "gemini",
 ) -> BlogDraft:
     """주어진 토픽에 대한 블로그 초안을 생성. 실패 시 플레이스홀더 반환."""
+    today_date = datetime.now().strftime("%Y년 %m월 %d일")
     user_prompt = WRITER_USER.format(
         topic=topic,
         reason=reason,
+        today_date=today_date,
         news_context=_format_news_context(news_items),
         market_data=_format_market_data(market_snapshots),
     )
