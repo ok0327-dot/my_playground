@@ -275,6 +275,53 @@ def run() -> PipelineResult:
     selected = final_selected
     logger.info("도메인 분포: %s", dict(domain_count))
 
+    # ── 다양성 시드 주입: 빈 도메인에서 시장 데이터 기반 토픽 자동 생성 ──
+    if len(selected) < MAX_TOPICS_PER_RUN and result.market_snapshots:
+        import random as _rand
+        # 시장 데이터에서 변동이 큰 지표로 시드 토픽 생성
+        _seed_map: dict[str, list[tuple[str, str]]] = {
+            "환율": [],
+            "코인": [],
+            "원자재": [],
+            "채권금리": [],
+            "생활재테크": [("절세 전략과 연금 투자 점검", "생활 재테크 토픽 자동 주입")],
+            "투자마인드": [("분산 투자 포트폴리오 점검", "투자 마인드 토픽 자동 주입")],
+        }
+        for snap in result.market_snapshots:
+            name_lower = snap.name.lower()
+            pct = f"{'+' if snap.change_pct >= 0 else ''}{snap.change_pct:.1f}%"
+            if "usd_krw" in name_lower or "환율" in name_lower:
+                _seed_map["환율"].append((f"원달러 환율 {snap.price:,.0f}원 시대 분석", f"환율 {pct} 변동"))
+            elif "jpy" in name_lower or "eur" in name_lower:
+                _seed_map["환율"].append((f"{snap.name} 환율 동향 분석", f"환율 {pct} 변동"))
+            elif "btc" in name_lower or "비트코인" in name_lower:
+                _seed_map["코인"].append((f"비트코인 ${snap.price:,.0f} 시대 투자 전략", f"BTC {pct}"))
+            elif "gold" in name_lower or "금" in name_lower:
+                _seed_map["원자재"].append((f"금값 ${snap.price:,.0f} 돌파 투자 가이드", f"금 {pct}"))
+            elif "oil" in name_lower or "wti" in name_lower:
+                _seed_map["원자재"].append((f"국제유가 ${snap.price:,.1f} 시대 영향 분석", f"유가 {pct}"))
+
+        # 부동산은 시장 데이터 없으므로 고정 시드
+        if "부동산" not in domain_count:
+            _seed_map["부동산"] = [("2026년 부동산 시장 전망과 투자 전략", "부동산 다양성 주입")]
+
+        for domain, seeds in _seed_map.items():
+            if len(selected) >= MAX_TOPICS_PER_RUN:
+                break
+            if domain in domain_count:
+                continue  # 이미 이 도메인 토픽이 있음
+            if not seeds:
+                continue
+            kw, reason = _rand.choice(seeds)
+            selected.append(Topic(
+                keyword=kw,
+                label=TopicLabel.ADOPT,
+                reason=f"다양성 시드 주입 — {reason}",
+                score=7,
+            ))
+            domain_count[domain] = 1
+            logger.info("다양성 시드 주입: '%s' (도메인: %s)", kw, domain)
+
     logger.info(
         "선정된 토픽: %d개 — %s",
         len(selected),
