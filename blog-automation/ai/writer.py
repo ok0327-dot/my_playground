@@ -14,6 +14,19 @@ from .providers import call_ai
 logger = logging.getLogger(__name__)
 
 
+# ── 후처리: 한자/외국어 제거 필터 ──
+# CJK Unified Ideographs (한자), 히라가나, 가타카나 범위
+_CJK_PATTERN = re.compile(r"[\u4e00-\u9fff\u3400-\u4dbf\u3040-\u309f\u30a0-\u30ff]+")
+
+
+def _sanitize_body(html: str) -> str:
+    """본문에서 한자·일본어 등 금지 외국어 문자를 제거한다."""
+    cleaned = _CJK_PATTERN.sub("", html)
+    # 제거 후 빈 공백 정리 (연속 공백 → 단일 공백)
+    cleaned = re.sub(r"  +", " ", cleaned)
+    return cleaned
+
+
 def _format_news_context(news_items: list[NewsItem]) -> str:
     if not news_items:
         return "관련 뉴스 기사 없음"
@@ -136,8 +149,8 @@ def generate_draft(
 
         draft = BlogDraft(
             topic=topic,
-            title=parsed["title"],
-            body_html=parsed["body"],
+            title=_sanitize_body(parsed["title"]),
+            body_html=_sanitize_body(parsed["body"]),
             market_data=market_snapshots,
             tags=parsed["tags"],
             meta_description=parsed["meta_description"],
