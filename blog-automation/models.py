@@ -63,6 +63,8 @@ class BlogDraft:
     # Unsplash 이미지
     image_url: str = ""           # Unsplash 이미지 URL
     image_credit: str = ""        # "Photo by {name} on Unsplash"
+    # GIPHY GIF 추적 (중복 방지용 / GIF dedup tracking)
+    gif_ids: list[str] = field(default_factory=list)
     # SEO 메타데이터
     tags: list[str] = field(default_factory=list)
     meta_description: str = ""

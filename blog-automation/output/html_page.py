@@ -102,6 +102,17 @@ def _inject_naver_styles(body_html: str, tags: list[str] | None = None) -> str:
         result,
     )
 
+    # ── GIPHY GIF: 네이버 앱 붙여넣기 불가 → 오렌지색 안내 박스로 교체 ──
+    result = re.sub(
+        r'<div[^>]*>\s*<img[^>]*src="[^"]*giphy[^"]*"[^>]*/>\s*'
+        r'(?:<p[^>]*>[^<]*</p>\s*)*</div>',
+        '<div style="text-align:center; margin:16px 0; padding:12px; '
+        'background:#fff3e0; border:1px dashed #ff9800; border-radius:8px; '
+        'font-size:14px; color:#e65100;">'
+        '\U0001f3ac GIF 움짤 (원본에서 확인)</div><br>',
+        result,
+    )
+
     # ── 표 ──
     result = re.sub(
         r"<table(?:\s[^>]*)?>",
@@ -163,6 +174,7 @@ def _draft_to_dict(draft: BlogDraft) -> dict:
         if draft.market_data
         else [],
         "image_ids": _extract_photo_ids(draft.body_html),
+        "gif_ids": list(draft.gif_ids) if hasattr(draft, "gif_ids") else [],
     }
 
 
@@ -383,6 +395,10 @@ def _build_html(daily_data: list[tuple[str, list[dict]]]) -> str:
             -webkit-overflow-scrolling: touch;
         }}
         .body-html img {{ width: 100%; border-radius: 8px; margin: 12px 0; }}
+        .body-html img[src*="giphy"] {{
+            max-width: 100%; width: auto;
+            border-radius: 8px; margin: 12px auto; display: block;
+        }}
         .body-html h3 {{ font-size: 1.05rem; margin: 16px 0 8px; color: #2e7d32; }}
         .body-html p {{ margin-bottom: 10px; }}
         .body-html table {{ width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.85rem; display: block; overflow-x: auto; }}

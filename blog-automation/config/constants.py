@@ -38,6 +38,10 @@ GOOGLE_TRENDS_RSS_URL = "https://trends.google.co.kr/trending/rss?geo=KR"
 # ── Unsplash API (이미지 검색) ──
 UNSPLASH_API_URL = "https://api.unsplash.com/search/photos"
 
+# ── GIPHY API (GIF 검색) ──
+GIPHY_API_URL = "https://api.giphy.com/v1/gifs/search"
+GIPHY_RATING = "pg-13"
+
 # ── FRED API (미국 경제지표) ──
 FRED_API_URL = "https://api.stlouisfed.org/fred/series/observations"
 FRED_SERIES = {

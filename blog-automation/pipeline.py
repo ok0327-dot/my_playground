@@ -517,6 +517,76 @@ def run() -> PipelineResult:
             except Exception as e:
                 logger.warning("이미지 검색/삽입 실패: '%s' — %s", draft.topic, e)
 
+    # ── Step 3.6: GIPHY GIF 마커 교체 (선택) ──
+    import re as _re_gif
+
+    _GIPHY_MARKER_RE = _re_gif.compile(
+        r"\[GIPHY:\s*(.+?)\s*\|\s*(.+?)\s*\]"
+    )
+
+    if settings.giphy_api_key and result.drafts:
+        logger.info("── Step 3.6: GIPHY GIF 마커 교체 ──")
+        import random as _rand_gif
+        from collectors.giphy import search_gif
+
+        # 아카이브에서 사용된 GIF ID 로드 (cross-day 중복 방지)
+        used_gif_ids: set[str] = set()
+        try:
+            data_dir_gif = _Path(__file__).resolve().parent / "docs" / "data"
+            if data_dir_gif.exists():
+                for jf in sorted(data_dir_gif.glob("*.json"), reverse=True)[:7]:
+                    jdata = _json.loads(jf.read_text(encoding="utf-8"))
+                    for d in jdata:
+                        used_gif_ids.update(d.get("gif_ids", []))
+            if used_gif_ids:
+                logger.info("이전 아카이브 GIF ID %d개 로드 (중복 방지)", len(used_gif_ids))
+        except Exception:
+            logger.warning("이전 GIF ID 로드 실패 — 중복 방지 없이 진행")
+
+        for draft in result.drafts:
+            if settings.dry_run:
+                continue
+            markers = list(_GIPHY_MARKER_RE.finditer(draft.body_html))
+            if not markers:
+                continue
+
+            logger.info("GIF 마커 %d개 발견: '%s'", len(markers), draft.topic)
+            new_body = draft.body_html
+            for m in reversed(markers):  # 뒤에서부터 교체 (인덱스 밀림 방지)
+                keyword = m.group(1).strip()
+                caption = m.group(2).strip()
+                pick_idx = _rand_gif.randint(0, 3)
+                gif_url, gif_title, gif_id = search_gif(
+                    keyword, settings.giphy_api_key,
+                    pick=pick_idx, exclude_ids=used_gif_ids,
+                )
+                if gif_url and gif_id:
+                    used_gif_ids.add(gif_id)
+                    draft.gif_ids.append(gif_id)
+                    gif_html = (
+                        f'<div style="text-align:center; margin:16px 0;">'
+                        f'<img src="{gif_url}" alt="{gif_title}" '
+                        f'style="max-width:100%; border-radius:8px;" />'
+                        f'<p style="font-size:13px; color:#888; margin:4px 0 0; '
+                        f'font-style:italic;">{caption}</p>'
+                        f'<p style="font-size:10px; color:#bbb; margin:2px 0 0;">'
+                        f'Powered by GIPHY</p>'
+                        f'</div>'
+                    )
+                    new_body = new_body[:m.start()] + gif_html + new_body[m.end():]
+                    logger.info("GIF 삽입: '%s' → %s", keyword, gif_id)
+                else:
+                    # 검색 실패 → 마커만 제거
+                    new_body = new_body[:m.start()] + new_body[m.end():]
+                    logger.warning("GIF 검색 실패, 마커 제거: '%s'", keyword)
+
+            draft.body_html = new_body
+
+    else:
+        # GIPHY 키 미설정 시 모든 [GIPHY: ...] 마커 제거 (graceful degradation)
+        for draft in result.drafts:
+            draft.body_html = _GIPHY_MARKER_RE.sub("", draft.body_html)
+
     # ── Step 4a: 쿠팡 링크 (선택) ──
     if settings.coupang_access_key and result.drafts:
         logger.info("── Step 4a: 쿠팡 링크 생성 ──")
