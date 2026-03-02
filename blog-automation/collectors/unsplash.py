@@ -48,11 +48,18 @@ def _trigger_download(download_url: str, access_key: str) -> None:
         logger.debug("Unsplash download tracking 실패 (비필수)", exc_info=True)
 
 
+def _url_to_key(url: str) -> str:
+    """Unsplash URL에서 고유 키를 추출 (photo-xxxx 부분)."""
+    import re
+    m = re.search(r"(photo-[a-zA-Z0-9_-]+)", url)
+    return m.group(1) if m else url
+
+
 def search_image(
     query: str,
     access_key: str,
     pick: int = 0,
-    exclude_ids: set[str] | None = None,
+    exclude_urls: set[str] | None = None,
 ) -> tuple[str, str, str]:
     """Unsplash에서 이미지를 검색하여 1장을 반환.
 
@@ -60,7 +67,7 @@ def search_image(
         query: 영어 검색 키워드 (English search keyword)
         access_key: Unsplash API 액세스 키
         pick: 검색 결과 중 선택할 인덱스 (0부터 시작)
-        exclude_ids: 제외할 photo ID 집합 (중복 이미지 방지)
+        exclude_urls: 제외할 이미지 URL 키 집합 (중복 이미지 방지)
 
     Returns:
         (image_url, credit_text, photo_id) 또는 실패 시 ("", "", "")
@@ -73,12 +80,15 @@ def search_image(
         data = _search_photos(query, access_key)
         results = data.get("results", [])
 
-        # 제외 목록 필터링 (이미 사용된 사진 제거)
-        if exclude_ids:
-            results = [r for r in results if r["id"] not in exclude_ids]
+        # 제외 목록 필터링 (이미 사용된 사진 제거 — URL 키 기반)
+        if exclude_urls:
+            results = [
+                r for r in results
+                if _url_to_key(r["urls"].get("regular", "")) not in exclude_urls
+            ]
 
         if not results:
-            logger.info("Unsplash 검색 결과 없음: '%s'", query)
+            logger.info("Unsplash 검색 결과 없음 (제외 후): '%s'", query)
             return ("", "", "")
 
         photo = results[min(pick, len(results) - 1)]

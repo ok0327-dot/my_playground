@@ -225,9 +225,32 @@ def run() -> PipelineResult:
     ))
     selected = selected[:MAX_TOPICS_PER_RUN]
 
-    # 같은 날 선정된 토픽 간 유사도 필터 (intra-day dedup)
+    # 같은 날 선정된 토픽 간 유사도 + 도메인 다양성 필터
+    _DOMAIN_KEYWORDS = {
+        "주식": ["주식", "증시", "코스피", "코스닥", "kospi", "kosdaq", "나스닥", "s&p",
+                 "종목", "실적", "배당", "ipo", "공모주", "상장"],
+        "부동산": ["부동산", "아파트", "전세", "월세", "분양", "재건축", "청약",
+                  "주택", "매매", "집값", "전월세", "임대"],
+        "코인": ["비트코인", "이더리움", "코인", "가상화폐", "암호화폐", "알트코인",
+                "블록체인", "디파이", "nft", "bitcoin", "crypto"],
+        "환율": ["환율", "달러", "엔화", "위안", "원달러", "외환", "환전"],
+        "채권금리": ["채권", "국채", "금리", "기준금리", "예금", "적금", "예적금"],
+        "원자재": ["금값", "유가", "금", "원유", "구리", "원자재", "wti", "금시세"],
+        "생활재테크": ["절세", "연금", "보험", "경매", "공매", "부업", "세금", "연말정산"],
+        "투자마인드": ["포트폴리오", "분산투자", "리밸런싱", "투자심리", "공포지수"],
+    }
+
+    def _detect_domain(keyword: str) -> str:
+        kw = keyword.lower()
+        for domain, patterns in _DOMAIN_KEYWORDS.items():
+            if any(p in kw for p in patterns):
+                return domain
+        return "기타"
+
     final_selected: list[Topic] = []
+    domain_count: dict[str, int] = {}
     for t in selected:
+        # 유사도 체크
         t_words = set(w for w in t.keyword.lower().split() if len(w) >= 2)
         is_dup = False
         for kept in final_selected:
@@ -237,9 +260,20 @@ def run() -> PipelineResult:
                 logger.info("당일 내 중복 제거: '%s' ↔ '%s' (겹침: %s)", t.keyword, kept.keyword, overlap)
                 is_dup = True
                 break
-        if not is_dup:
-            final_selected.append(t)
+        if is_dup:
+            continue
+
+        # 도메인 다양성 체크 (같은 도메인 최대 1편)
+        domain = _detect_domain(t.keyword)
+        if domain_count.get(domain, 0) >= 1 and domain != "기타":
+            logger.info("도메인 중복 제거: '%s' (도메인: %s, 이미 1편 선정)", t.keyword, domain)
+            continue
+
+        final_selected.append(t)
+        domain_count[domain] = domain_count.get(domain, 0) + 1
+
     selected = final_selected
+    logger.info("도메인 분포: %s", dict(domain_count))
 
     logger.info(
         "선정된 토픽: %d개 — %s",
@@ -297,8 +331,8 @@ def run() -> PipelineResult:
         import random
         from collectors.unsplash import search_image
 
-        # 이전 아카이브에서 사용된 사진 ID 로드 (cross-day 중복 방지)
-        used_photo_ids: set[str] = set()
+        # 이전 아카이브에서 사용된 사진 URL 키 로드 (cross-day 중복 방지)
+        used_photo_keys: set[str] = set()
         try:
             import re as _re
             data_dir_img = _Path(__file__).resolve().parent / "docs" / "data"
@@ -306,15 +340,13 @@ def run() -> PipelineResult:
                 for jf in sorted(data_dir_img.glob("*.json"), reverse=True)[:7]:
                     jdata = _json.loads(jf.read_text(encoding="utf-8"))
                     for d in jdata:
-                        # image_ids 필드가 있으면 사용, 없으면 body_html에서 추출
-                        ids = d.get("image_ids", [])
-                        if not ids:
-                            ids = _re.findall(r"photo-[a-zA-Z0-9_-]+", d.get("body_html", ""))
-                        used_photo_ids.update(ids)
-            if used_photo_ids:
-                logger.info("이전 아카이브 사진 ID %d개 로드 (중복 방지)", len(used_photo_ids))
+                        # body_html에서 photo-xxxx URL 키 추출
+                        keys = _re.findall(r"photo-[a-zA-Z0-9_-]+", d.get("body_html", ""))
+                        used_photo_keys.update(keys)
+            if used_photo_keys:
+                logger.info("이전 아카이브 사진 키 %d개 로드 (중복 방지)", len(used_photo_keys))
         except Exception:
-            logger.warning("이전 사진 ID 로드 실패 — 중복 방지 없이 진행")
+            logger.warning("이전 사진 키 로드 실패 — 중복 방지 없이 진행")
 
         for draft in result.drafts:
             if settings.dry_run:
@@ -337,7 +369,7 @@ def run() -> PipelineResult:
                 pick_idx = random.randint(0, 2)  # 랜덤 선택으로 다양성 확보
                 image_url, credit_text, photo_id = search_image(
                     en_keyword, settings.unsplash_access_key,
-                    pick=pick_idx, exclude_ids=used_photo_ids,
+                    pick=pick_idx, exclude_urls=used_photo_keys,
                 )
 
                 # Fallback: 검색 결과 없으면 더 일반적인 키워드로 재시도
@@ -357,14 +389,17 @@ def run() -> PipelineResult:
                     logger.info("이미지 키워드 fallback: '%s' → '%s'", en_keyword, fallback_keyword)
                     image_url, credit_text, photo_id = search_image(
                         fallback_keyword, settings.unsplash_access_key,
-                        pick=pick_idx, exclude_ids=used_photo_ids,
+                        pick=pick_idx, exclude_urls=used_photo_keys,
                     )
 
                 # ── 도입부 이미지 (정보성) ──
                 if image_url:
                     draft.image_url = image_url
                     draft.image_credit = credit_text
-                    used_photo_ids.add(photo_id)
+                    # URL 키로 중복 추적 (photo-xxxx 형태)
+                    img_key_match = _re.search(r"photo-[a-zA-Z0-9_-]+", image_url)
+                    if img_key_match:
+                        used_photo_keys.add(img_key_match.group(0))
 
                     img_html = (
                         f'<img src="{image_url}" alt="{draft.topic}" '
@@ -415,10 +450,12 @@ def run() -> PipelineResult:
                     end_pick = random.randint(0, 2)
                     end_url, end_credit, end_pid = search_image(
                         end_keyword, settings.unsplash_access_key,
-                        pick=end_pick, exclude_ids=used_photo_ids,
+                        pick=end_pick, exclude_urls=used_photo_keys,
                     )
                     if end_url:
-                        used_photo_ids.add(end_pid)
+                        end_key_match = _re.search(r"photo-[a-zA-Z0-9_-]+", end_url)
+                        if end_key_match:
+                            used_photo_keys.add(end_key_match.group(0))
                         end_img_html = (
                             f'<img src="{end_url}" alt="{draft.topic}" '
                             f'style="width:100%; border-radius:8px; margin:24px 0 4px;" />'
