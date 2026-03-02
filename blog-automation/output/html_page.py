@@ -378,14 +378,14 @@ def _build_html(daily_data: list[tuple[str, list[dict]]]) -> str:
             font-size: 0.95rem;
             line-height: 1.7;
             word-break: keep-all;
-            max-height: 500px;
+            max-height: 800px;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
         }}
         .body-html img {{ width: 100%; border-radius: 8px; margin: 12px 0; }}
         .body-html h3 {{ font-size: 1.05rem; margin: 16px 0 8px; color: #2e7d32; }}
         .body-html p {{ margin-bottom: 10px; }}
-        .body-html table {{ width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.85rem; }}
+        .body-html table {{ width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.85rem; display: block; overflow-x: auto; }}
         .body-html th, .body-html td {{ border: 1px solid #ddd; padding: 6px 8px; text-align: left; }}
         .body-html th {{ background: #f0f0f0; }}
         .body-copy-btn {{
