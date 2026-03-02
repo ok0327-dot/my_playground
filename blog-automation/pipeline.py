@@ -130,6 +130,24 @@ def run() -> PipelineResult:
     if fred_summary:
         market_summary = f"{market_summary}\n\n{fred_summary}" if market_summary else fred_summary
 
+    # 최근 블로그 주제 로드 (중복 방지용)
+    recent_topics: list[str] = []
+    try:
+        import json as _json
+        from pathlib import Path as _Path
+        data_dir = _Path(__file__).resolve().parent / "docs" / "data"
+        if data_dir.exists():
+            for jf in sorted(data_dir.glob("*.json"), reverse=True)[:7]:
+                if jf.stem == result.run_date:
+                    continue  # 오늘 데이터는 제외
+                data = _json.loads(jf.read_text(encoding="utf-8"))
+                for d in data:
+                    recent_topics.append(f"[{jf.stem}] {d.get('title', d.get('topic', ''))}")
+        if recent_topics:
+            logger.info("중복 방지용 이전 주제 %d개 로드", len(recent_topics))
+    except Exception:
+        logger.warning("이전 주제 로드 실패 — 중복 방지 없이 진행")
+
     from ai.classifier import classify_topics
     result.classified_topics = classify_topics(
         all_keywords,
@@ -137,6 +155,7 @@ def run() -> PipelineResult:
         gemini_api_key=settings.gemini_api_key,
         groq_api_key=settings.groq_api_key,
         ai_provider=settings.ai_provider,
+        recent_topics=recent_topics,
     )
 
     # ── Step 2.5: 수동 토픽 주입 (Manual topic injection) ──

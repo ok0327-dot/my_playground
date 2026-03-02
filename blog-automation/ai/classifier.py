@@ -71,15 +71,20 @@ def classify_topics(
     gemini_api_key: str = "",
     groq_api_key: str = "",
     ai_provider: str = "gemini",
+    recent_topics: list[str] | None = None,
 ) -> list[Topic]:
     """키워드 목록을 분류하여 Topic 리스트로 반환."""
     if not keywords:
         return []
 
     topics_json = json.dumps(keywords, ensure_ascii=False)
+    recent_str = "없음 (첫 실행)"
+    if recent_topics:
+        recent_str = "\n".join(f"- {t}" for t in recent_topics)
     user_prompt = CLASSIFIER_USER.format(
         topics_json=topics_json,
         market_summary=market_summary,
+        recent_topics=recent_str,
     )
 
     try:
