@@ -146,6 +146,11 @@ def _extract_image_urls(body_html: str) -> list[tuple[str, str]]:
     return images
 
 
+def _extract_photo_ids(body_html: str) -> list[str]:
+    """본문 HTML에서 Unsplash photo ID를 추출."""
+    return re.findall(r"photo-[a-zA-Z0-9_-]+", body_html)
+
+
 def _draft_to_dict(draft: BlogDraft) -> dict:
     """BlogDraft 객체를 JSON 직렬화 가능한 dict로 변환."""
     return {
@@ -157,6 +162,7 @@ def _draft_to_dict(draft: BlogDraft) -> dict:
         "market_summary_lines": [s.summary_line() for s in draft.market_data]
         if draft.market_data
         else [],
+        "image_ids": _extract_photo_ids(draft.body_html),
     }
 
 

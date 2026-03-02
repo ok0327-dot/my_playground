@@ -28,7 +28,7 @@ def _search_photos(query: str, access_key: str) -> dict:
     params = {
         "query": query,
         "orientation": "landscape",
-        "per_page": 3,
+        "per_page": 10,
     }
     resp = requests.get(UNSPLASH_API_URL, headers=headers, params=params, timeout=10)
     resp.raise_for_status()

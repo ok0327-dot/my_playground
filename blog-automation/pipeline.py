@@ -158,6 +158,36 @@ def run() -> PipelineResult:
         recent_topics=recent_topics,
     )
 
+    # ── Step 2.1: 결정론적 주제 중복 필터 (Deterministic dedup) ──
+    # AI 분류기가 놓칠 수 있는 유사 주제를 단어 겹침으로 강제 SKIP
+    if recent_topics:
+        # 이전 제목에서 핵심 단어 집합 추출 (날짜 태그 제거)
+        import re as _re
+        recent_word_sets: list[set[str]] = []
+        for rt in recent_topics:
+            # "[2026-03-01] 제목..." → 제목 부분만 추출
+            clean = _re.sub(r"^\[\d{4}-\d{2}-\d{2}\]\s*", "", rt)
+            words = set(w for w in clean.lower().split() if len(w) >= 2)
+            recent_word_sets.append(words)
+
+        dedup_count = 0
+        for topic in result.classified_topics:
+            if topic.label == TopicLabel.SKIP:
+                continue
+            kw_words = set(w for w in topic.keyword.lower().split() if len(w) >= 2)
+            if not kw_words:
+                continue
+            for rws in recent_word_sets:
+                overlap = kw_words & rws
+                # 키워드 단어의 50% 이상이 이전 제목과 겹치면 중복
+                if len(overlap) >= max(2, len(kw_words) * 0.5):
+                    topic.label = TopicLabel.SKIP
+                    topic.reason = f"이전 주제와 중복 (겹침: {', '.join(overlap)})"
+                    dedup_count += 1
+                    break
+        if dedup_count:
+            logger.info("결정론적 중복 필터: %d개 토픽 SKIP 처리", dedup_count)
+
     # ── Step 2.5: 수동 토픽 주입 (Manual topic injection) ──
     if settings.manual_topics:
         logger.info("수동 토픽 %d개 주입: %s", len(settings.manual_topics), list(settings.manual_topics))
@@ -194,6 +224,23 @@ def run() -> PipelineResult:
         -t.score,
     ))
     selected = selected[:MAX_TOPICS_PER_RUN]
+
+    # 같은 날 선정된 토픽 간 유사도 필터 (intra-day dedup)
+    final_selected: list[Topic] = []
+    for t in selected:
+        t_words = set(w for w in t.keyword.lower().split() if len(w) >= 2)
+        is_dup = False
+        for kept in final_selected:
+            kept_words = set(w for w in kept.keyword.lower().split() if len(w) >= 2)
+            overlap = t_words & kept_words
+            if overlap and len(overlap) >= max(2, min(len(t_words), len(kept_words)) * 0.5):
+                logger.info("당일 내 중복 제거: '%s' ↔ '%s' (겹침: %s)", t.keyword, kept.keyword, overlap)
+                is_dup = True
+                break
+        if not is_dup:
+            final_selected.append(t)
+    selected = final_selected
+
     logger.info(
         "선정된 토픽: %d개 — %s",
         len(selected),
@@ -247,7 +294,27 @@ def run() -> PipelineResult:
     # ── Step 3.5: Unsplash 이미지 검색 (선택) ──
     if settings.unsplash_access_key and result.drafts:
         logger.info("── Step 3.5: Unsplash 이미지 검색 ──")
+        import random
         from collectors.unsplash import search_image
+
+        # 이전 아카이브에서 사용된 사진 ID 로드 (cross-day 중복 방지)
+        used_photo_ids: set[str] = set()
+        try:
+            import re as _re
+            data_dir_img = _Path(__file__).resolve().parent / "docs" / "data"
+            if data_dir_img.exists():
+                for jf in sorted(data_dir_img.glob("*.json"), reverse=True)[:7]:
+                    jdata = _json.loads(jf.read_text(encoding="utf-8"))
+                    for d in jdata:
+                        # image_ids 필드가 있으면 사용, 없으면 body_html에서 추출
+                        ids = d.get("image_ids", [])
+                        if not ids:
+                            ids = _re.findall(r"photo-[a-zA-Z0-9_-]+", d.get("body_html", ""))
+                        used_photo_ids.update(ids)
+            if used_photo_ids:
+                logger.info("이전 아카이브 사진 ID %d개 로드 (중복 방지)", len(used_photo_ids))
+        except Exception:
+            logger.warning("이전 사진 ID 로드 실패 — 중복 방지 없이 진행")
 
         for draft in result.drafts:
             if settings.dry_run:
@@ -267,7 +334,11 @@ def run() -> PipelineResult:
                 ).strip()
                 logger.info("이미지 키워드 번역: '%s' → '%s'", draft.topic, en_keyword)
 
-                image_url, credit_text, photo_id = search_image(en_keyword, settings.unsplash_access_key)
+                pick_idx = random.randint(0, 2)  # 랜덤 선택으로 다양성 확보
+                image_url, credit_text, photo_id = search_image(
+                    en_keyword, settings.unsplash_access_key,
+                    pick=pick_idx, exclude_ids=used_photo_ids,
+                )
 
                 # Fallback: 검색 결과 없으면 더 일반적인 키워드로 재시도
                 if not image_url:
@@ -284,10 +355,12 @@ def run() -> PipelineResult:
                         temperature=0.3,
                     ).strip()
                     logger.info("이미지 키워드 fallback: '%s' → '%s'", en_keyword, fallback_keyword)
-                    image_url, credit_text, photo_id = search_image(fallback_keyword, settings.unsplash_access_key)
+                    image_url, credit_text, photo_id = search_image(
+                        fallback_keyword, settings.unsplash_access_key,
+                        pick=pick_idx, exclude_ids=used_photo_ids,
+                    )
 
                 # ── 도입부 이미지 (정보성) ──
-                used_photo_ids: set[str] = set()
                 if image_url:
                     draft.image_url = image_url
                     draft.image_credit = credit_text
@@ -310,26 +383,42 @@ def run() -> PipelineResult:
 
                 # ── 마무리 이미지 (감성적/심미적) ──
                 try:
+                    # 다양한 감성 키워드를 위한 랜덤 스타일 힌트
+                    style_hints = [
+                        "hopeful sunrise, golden hour landscape",
+                        "city skyline at dusk, urban evening",
+                        "calm ocean waves, serene coast",
+                        "mountain peak, misty valley",
+                        "rainy window, cozy atmosphere",
+                        "autumn leaves, warm colors",
+                        "night sky stars, contemplative mood",
+                        "coffee shop morning, warm light",
+                    ]
+                    hint = random.choice(style_hints)
                     end_keyword = call_ai(
                         system_prompt=(
                             "Given the blog topic below, suggest an English keyword (1-3 words) "
-                            "for searching a beautiful, aesthetic, emotional photo on Unsplash "
+                            "for searching a beautiful, aesthetic photo on Unsplash "
                             "that would make a great closing image for the article. "
-                            "Think: hopeful sunrise, city skyline at night, peaceful nature, "
-                            "person looking at horizon, etc. Reply with ONLY the keyword."
+                            f"Style direction: {hint}. "
+                            "Be creative and AVOID generic keywords like 'stock market', 'finance', 'economy'. "
+                            "Reply with ONLY the keyword."
                         ),
                         user_prompt=draft.topic,
                         gemini_api_key=settings.gemini_api_key,
                         groq_api_key=settings.groq_api_key,
                         ai_provider=settings.ai_provider,
-                        temperature=0.5,
+                        temperature=0.8,
                     ).strip()
                     logger.info("마무리 이미지 키워드: '%s' → '%s'", draft.topic, end_keyword)
 
+                    end_pick = random.randint(0, 2)
                     end_url, end_credit, end_pid = search_image(
-                        end_keyword, settings.unsplash_access_key, exclude_ids=used_photo_ids,
+                        end_keyword, settings.unsplash_access_key,
+                        pick=end_pick, exclude_ids=used_photo_ids,
                     )
                     if end_url:
+                        used_photo_ids.add(end_pid)
                         end_img_html = (
                             f'<img src="{end_url}" alt="{draft.topic}" '
                             f'style="width:100%; border-radius:8px; margin:24px 0 4px;" />'
