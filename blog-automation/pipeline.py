@@ -266,6 +266,24 @@ def run() -> PipelineResult:
             logger.exception("초안 생성 실패: '%s'", topic.keyword)
             result.errors.append(f"writer({topic.keyword}): {e}")
 
+    # ── Step 3.5: 리라이트 (재미 강화) ──
+    if result.drafts and not settings.dry_run:
+        logger.info("── Step 3.5: 리라이트 (재미 강화) ──")
+        from ai.writer import rewrite_draft
+
+        for draft in result.drafts:
+            if draft.status == "placeholder":
+                continue
+            try:
+                rewrite_draft(
+                    draft,
+                    gemini_api_key=settings.gemini_api_key,
+                    groq_api_key=settings.groq_api_key,
+                    ai_provider=settings.writer_ai_provider,
+                )
+            except Exception as e:
+                logger.warning("리라이트 실패 (원본 유지): '%s' — %s", draft.title, e)
+
     # ── Step 4a: 마크다운 로컬 저장 ──
     if settings.save_local_markdown and result.drafts:
         logger.info("── Step 4a: 마크다운 로컬 저장 ──")

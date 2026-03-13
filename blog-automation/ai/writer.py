@@ -6,7 +6,7 @@ import logging
 import re
 from datetime import datetime
 
-from config.prompts import WRITER_SYSTEM, WRITER_USER
+from config.prompts import REWRITER_SYSTEM, REWRITER_USER, WRITER_SYSTEM, WRITER_USER
 from models import BlogDraft, MarketSnapshot, NewsItem
 
 from .providers import call_ai
@@ -171,3 +171,55 @@ def generate_draft(
     except Exception:
         logger.exception("블로그 초안 생성 실패: '%s' — 플레이스홀더 생성", topic)
         return _generate_placeholder_draft(topic, reason)
+
+
+def _parse_rewrite(raw: str, original_title: str) -> tuple[str, str]:
+    """리라이트 응답에서 제목과 본문을 분리."""
+    raw = _strip_code_blocks(raw).strip()
+    title = original_title
+    body = raw
+
+    lines = raw.split("\n")
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+        if stripped.startswith("제목:") or stripped.startswith("제목 :"):
+            title = stripped.split(":", 1)[1].strip()
+        elif stripped.startswith("본문:") or stripped.startswith("본문 :"):
+            body = "\n".join(lines[i + 1:]).strip()
+            break
+
+    return title, body
+
+
+def rewrite_draft(
+    draft: BlogDraft,
+    gemini_api_key: str = "",
+    groq_api_key: str = "",
+    ai_provider: str = "gemini",
+) -> BlogDraft:
+    """초안을 리라이트하여 초딩미를 강화."""
+    user_prompt = REWRITER_USER.format(
+        title=draft.title,
+        body_html=draft.body_html,
+    )
+
+    try:
+        raw = call_ai(
+            system_prompt=REWRITER_SYSTEM,
+            user_prompt=user_prompt,
+            gemini_api_key=gemini_api_key,
+            groq_api_key=groq_api_key,
+            ai_provider=ai_provider,
+            temperature=0.9,
+        )
+        new_title, new_body = _parse_rewrite(raw, draft.title)
+        new_body = _sanitize_body(new_body)
+
+        draft.title = new_title
+        draft.body_html = new_body
+        logger.info("리라이트 완료: '%s'", draft.title)
+        return draft
+
+    except Exception:
+        logger.exception("리라이트 실패: '%s' — 원본 유지", draft.title)
+        return draft
