@@ -130,16 +130,6 @@ def save_draft_as_markdown(
             lines.append(f"| {s.name} | {s.price:,.2f} | {sign}{s.change_pct:.2f}% |")
         lines.append("")
 
-    # 쿠팡 링크
-    if draft.coupang_links:
-        lines.append("---")
-        lines.append("")
-        lines.append("## 관련 상품 링크")
-        lines.append("")
-        for link in draft.coupang_links:
-            lines.append(f"- {link}")
-        lines.append("")
-
     # 생성 시각
     lines.append("---")
     lines.append(f"*생성 시각: {draft.created_at}*")

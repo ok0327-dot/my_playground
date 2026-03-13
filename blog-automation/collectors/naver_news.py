@@ -142,3 +142,32 @@ def fetch_economy_news(
             logger.exception("네이버 뉴스 검색 실패: '%s'", query)
 
     return news_items
+
+
+def search_topic_news(
+    topic: str,
+    client_id: str,
+    client_secret: str,
+    display: int = 5,
+) -> list[NewsItem]:
+    """특정 토픽에 대한 네이버 뉴스를 검색."""
+    try:
+        items = _search_naver_news(topic, client_id, client_secret, display=display)
+        result = []
+        for item in items:
+            title = _strip_html(item.get("title", ""))
+            desc = _strip_html(item.get("description", ""))
+            result.append(
+                NewsItem(
+                    title=title,
+                    link=item.get("link", ""),
+                    source="naver_news",
+                    description=desc,
+                    pub_date=item.get("pubDate", ""),
+                )
+            )
+        logger.info("토픽별 뉴스 검색 '%s': %d건", topic, len(result))
+        return result
+    except Exception:
+        logger.exception("토픽별 뉴스 검색 실패: '%s'", topic)
+        return []

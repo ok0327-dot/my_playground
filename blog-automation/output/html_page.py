@@ -81,38 +81,6 @@ def _inject_naver_styles(body_html: str, tags: list[str] | None = None) -> str:
         result,
     )
 
-    # ── 이미지: 네이버 앱은 <img> 붙여넣기 불가 → 삽입 위치 안내로 교체 ──
-    result = re.sub(
-        r'<div[^>]*>\s*<img[^>]*>\s*</div>\s*'
-        r'(?:<div[^>]*>Photo by[^<]*</div>|<p[^>]*>Photo by[^<]*</p>)?',
-        '<div style="text-align:center; margin:16px 0; padding:12px; '
-        'background:#f0f7f0; border:1px dashed #4CAF50; border-radius:8px; '
-        'font-size:14px; color:#666;">'
-        '📷 이미지 저장 후 여기에 삽입</div><br>',
-        result,
-    )
-    # 래핑 안 된 단독 img+credit도 처리
-    result = re.sub(
-        r'<img[^>]*style="[^"]*width:100%[^>]*/>\s*'
-        r'(?:<p[^>]*>Photo by[^<]*</p>)?',
-        '<div style="text-align:center; margin:16px 0; padding:12px; '
-        'background:#f0f7f0; border:1px dashed #4CAF50; border-radius:8px; '
-        'font-size:14px; color:#666;">'
-        '📷 이미지 저장 후 여기에 삽입</div><br>',
-        result,
-    )
-
-    # ── GIPHY GIF: 네이버 앱 붙여넣기 불가 → 오렌지색 안내 박스로 교체 ──
-    result = re.sub(
-        r'<div[^>]*>\s*<img[^>]*src="[^"]*giphy[^"]*"[^>]*/>\s*'
-        r'(?:<p[^>]*>[^<]*</p>\s*)*</div>',
-        '<div style="text-align:center; margin:16px 0; padding:12px; '
-        'background:#fff3e0; border:1px dashed #ff9800; border-radius:8px; '
-        'font-size:14px; color:#e65100;">'
-        '\U0001f3ac GIF 움짤 (원본에서 확인)</div><br>',
-        result,
-    )
-
     # ── 표 ──
     result = re.sub(
         r"<table(?:\s[^>]*)?>",
@@ -145,23 +113,6 @@ def _inject_naver_styles(body_html: str, tags: list[str] | None = None) -> str:
     return result
 
 
-def _extract_image_urls(body_html: str) -> list[tuple[str, str]]:
-    """본문 HTML에서 Unsplash 이미지 URL과 크레딧을 추출."""
-    images = []
-    for m in re.finditer(
-        r'<img[^>]*src="(https://images\.unsplash\.com/[^"]+)"[^>]*/>'
-        r'\s*<p[^>]*>(Photo by [^<]+)</p>',
-        body_html,
-    ):
-        images.append((m.group(1), m.group(2)))
-    return images
-
-
-def _extract_photo_ids(body_html: str) -> list[str]:
-    """본문 HTML에서 Unsplash photo ID를 추출."""
-    return re.findall(r"photo-[a-zA-Z0-9_-]+", body_html)
-
-
 def _draft_to_dict(draft: BlogDraft) -> dict:
     """BlogDraft 객체를 JSON 직렬화 가능한 dict로 변환."""
     return {
@@ -173,8 +124,6 @@ def _draft_to_dict(draft: BlogDraft) -> dict:
         "market_summary_lines": [s.summary_line() for s in draft.market_data]
         if draft.market_data
         else [],
-        "image_ids": _extract_photo_ids(draft.body_html),
-        "gif_ids": list(draft.gif_ids) if hasattr(draft, "gif_ids") else [],
     }
 
 
@@ -225,21 +174,6 @@ def _build_draft_card(uid: str, draft_dict: dict) -> str:
     tags = draft_dict.get("tags", [])
     naver_styled = _inject_naver_styles(body_html_rendered, tags=tags)
 
-    image_urls = _extract_image_urls(body_html_rendered)
-    image_buttons = ""
-    if image_urls:
-        buttons = []
-        for img_idx, (url, _credit) in enumerate(image_urls):
-            label = "도입부 이미지" if img_idx == 0 else "마무리 이미지"
-            buttons.append(
-                f'<button class="img-save-btn" onclick="saveImage(\'{url}\', '
-                f'\'blog_img_{uid}_{img_idx}.jpg\')">'
-                f"{label} 저장</button>"
-            )
-        image_buttons = (
-            '<div class="img-save-row">' + "".join(buttons) + "</div>"
-        )
-
     tags_html = ""
     if tags:
         spans = "".join(
@@ -273,7 +207,6 @@ def _build_draft_card(uid: str, draft_dict: dict) -> str:
             <div class="body-html" id="body-rendered-{uid}">{body_html_rendered}</div>
             <div id="body-naver-{uid}" style="display:none">{naver_styled}</div>
             <button class="copy-btn body-copy-btn" onclick="copyHtml('body-naver-{uid}')">본문 복사 (네이버)</button>
-            {image_buttons}
         </div>{market_html}
     </div>"""
 
@@ -395,10 +328,6 @@ def _build_html(daily_data: list[tuple[str, list[dict]]]) -> str:
             -webkit-overflow-scrolling: touch;
         }}
         .body-html img {{ width: 100%; border-radius: 8px; margin: 12px 0; }}
-        .body-html img[src*="giphy"] {{
-            max-width: 100%; width: auto;
-            border-radius: 8px; margin: 12px auto; display: block;
-        }}
         .body-html h3 {{ font-size: 1.05rem; margin: 16px 0 8px; color: #2e7d32; }}
         .body-html p {{ margin-bottom: 10px; }}
         .body-html table {{ width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.85rem; display: block; overflow-x: auto; }}
@@ -409,24 +338,6 @@ def _build_html(daily_data: list[tuple[str, list[dict]]]) -> str:
             width: 100%;
             margin-top: 8px;
         }}
-        .img-save-row {{
-            display: flex;
-            gap: 8px;
-            margin-top: 8px;
-        }}
-        .img-save-btn {{
-            flex: 1;
-            background: #1976D2;
-            color: #fff;
-            border: none;
-            border-radius: 8px;
-            padding: 8px 12px;
-            font-size: 0.85rem;
-            cursor: pointer;
-            -webkit-tap-highlight-color: transparent;
-        }}
-        .img-save-btn:active {{ background: #1565C0; }}
-
         .market-toggle {{
             background: none;
             border: 1px solid #ddd;
@@ -527,27 +438,6 @@ def _build_html(daily_data: list[tuple[str, list[dict]]]) -> str:
                     fallbackCopyText(el.innerText);
                     showToast("텍스트만 복사됨 (브라우저 제한)");
                 }}
-            }}
-        }}
-
-        // ── 이미지 저장: fetch → blob → download (갤러리에 저장 후 네이버 앱에서 삽입) ──
-        async function saveImage(url, filename) {{
-            showToast("이미지 다운로드 중...");
-            try {{
-                var resp = await fetch(url);
-                var blob = await resp.blob();
-                var a = document.createElement("a");
-                a.href = URL.createObjectURL(blob);
-                a.download = filename;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(a.href);
-                showToast("저장 완료! 네이버 앱에서 이미지 추가하세요");
-            }} catch (e) {{
-                // 폴백: 새 탭에서 이미지 열기 (길게 눌러서 저장)
-                window.open(url, "_blank");
-                showToast("이미지가 열렸습니다. 길게 눌러 저장하세요");
             }}
         }}
 

@@ -1,4 +1,4 @@
-"""Step 1a: 네이버 급상승 검색어 (경제 필터) — URL/CSS 셀렉터 체인 개선."""
+"""Step 1a: 네이버 급상승 검색어 — 모든 트렌딩 키워드 수집 (필터 없음)."""
 
 from __future__ import annotations
 
@@ -8,7 +8,6 @@ import requests
 from bs4 import BeautifulSoup
 
 from config.constants import (
-    ECONOMY_KEYWORDS,
     NAVER_DATALAB_URLS,
     USER_AGENT,
 )
@@ -46,14 +45,8 @@ def _fetch_datalab_page() -> str:
     raise RuntimeError("모든 네이버 데이터랩 URL 접근 실패")
 
 
-def _is_economy_related(keyword: str) -> bool:
-    """키워드가 경제 관련인지 판별."""
-    kw_lower = keyword.lower()
-    return any(ek.lower() in kw_lower for ek in ECONOMY_KEYWORDS)
-
-
 def fetch_naver_trending() -> list[str]:
-    """네이버 급상승 검색어 중 경제 관련 키워드만 반환."""
+    """네이버 급상승 검색어를 필터 없이 전부 반환."""
     try:
         html = _fetch_datalab_page()
         soup = BeautifulSoup(html, "lxml")
@@ -78,12 +71,8 @@ def fetch_naver_trending() -> list[str]:
                 seen.add(normalized)
                 all_keywords.append(normalized)
 
-        logger.info("네이버 급상승 전체: %d개 (중복 제거 후)", len(all_keywords))
-
-        economy_keywords = [kw for kw in all_keywords if _is_economy_related(kw)]
-        logger.info("경제 관련 필터 결과: %d개", len(economy_keywords))
-
-        return economy_keywords
+        logger.info("네이버 급상승: %d개 (중복 제거 후)", len(all_keywords))
+        return all_keywords
 
     except Exception:
         logger.exception("네이버 급상승 검색어 수집 실패")

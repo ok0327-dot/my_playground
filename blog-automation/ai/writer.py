@@ -1,4 +1,4 @@
-"""Step 3: AI 기반 블로그 초안 생성 + SEO 메타데이터 파싱."""
+"""Step 3: AI 기반 블로그 초안 생성 (피벗형) + SEO 메타데이터 파싱."""
 
 from __future__ import annotations
 
@@ -15,14 +15,12 @@ logger = logging.getLogger(__name__)
 
 
 # ── 후처리: 한자/외국어 제거 필터 ──
-# CJK Unified Ideographs (한자), 히라가나, 가타카나 범위
 _CJK_PATTERN = re.compile(r"[\u4e00-\u9fff\u3400-\u4dbf\u3040-\u309f\u30a0-\u30ff]+")
 
 
 def _sanitize_body(html: str) -> str:
     """본문에서 한자·일본어 등 금지 외국어 문자를 제거한다."""
     cleaned = _CJK_PATTERN.sub("", html)
-    # 제거 후 빈 공백 정리 (연속 공백 → 단일 공백)
     cleaned = re.sub(r"  +", " ", cleaned)
     return cleaned
 
@@ -101,10 +99,8 @@ def _generate_placeholder_draft(topic: str, reason: str) -> BlogDraft:
     """AI 실패 시 플레이스홀더 초안을 생성."""
     body = (
         f"<h3>{topic}</h3>\n"
-        f"<p><b>분류 사유:</b> {reason}</p>\n"
+        f"<p><b>피벗 각도:</b> {reason}</p>\n"
         "<p>[AI 초안 생성 실패 — 수동 작성 필요]</p>\n"
-        "<p>이 글은 자동 생성에 실패하여 플레이스홀더로 대체되었습니다. "
-        "관련 뉴스와 시장 데이터를 참고하여 직접 작성해주세요.</p>"
     )
     return BlogDraft(
         topic=topic,
@@ -112,7 +108,7 @@ def _generate_placeholder_draft(topic: str, reason: str) -> BlogDraft:
         body_html=body,
         status="placeholder",
         tags=[topic],
-        meta_description=f"{topic} 관련 경제 블로그 글",
+        meta_description=f"{topic} 관련 경제 피벗 블로그 글",
         estimated_reading_time="3분",
     )
 
@@ -125,13 +121,26 @@ def generate_draft(
     gemini_api_key: str = "",
     groq_api_key: str = "",
     ai_provider: str = "gemini",
+    post_index: int = 0,
+    other_titles: list[str] | None = None,
 ) -> BlogDraft:
-    """주어진 토픽에 대한 블로그 초안을 생성. 실패 시 플레이스홀더 반환."""
+    """주어진 토픽에 대한 피벗형 블로그 초안을 생성."""
     today_date = datetime.now().strftime("%Y년 %m월 %d일")
+
+    # 같은 날 다른 글과 차별화 지시
+    diff_note = ""
+    if post_index > 0 or other_titles:
+        titles_str = ", ".join(f'"{t}"' for t in (other_titles or []))
+        diff_note = (
+            f"\n★ 차별화 필수: 오늘 이미 작성된 글 → {titles_str}\n"
+            "위 글들과 완전히 다른 도입부, 다른 톤, 다른 구조를 써라.\n"
+        )
+
     user_prompt = WRITER_USER.format(
         topic=topic,
         reason=reason,
         today_date=today_date,
+        differentiation_note=diff_note,
         news_context=_format_news_context(news_items),
         market_data=_format_market_data(market_snapshots),
     )

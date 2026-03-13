@@ -27,7 +27,6 @@ HEADERS = [
     "제목",
     "본문 (HTML)",
     "시장 데이터",
-    "쿠팡 링크",
     "상태",
     "태그",
     "메타 설명",
@@ -88,7 +87,6 @@ def save_drafts(
             market_str = " | ".join(
                 s.summary_line() for s in draft.market_data
             )
-            coupang_str = "\n".join(draft.coupang_links) if draft.coupang_links else ""
             tags_str = ", ".join(draft.tags) if draft.tags else ""
 
             row = [
@@ -97,7 +95,6 @@ def save_drafts(
                 draft.title,
                 draft.body_html,
                 market_str,
-                coupang_str,
                 draft.status,
                 tags_str,
                 draft.meta_description,
@@ -127,7 +124,6 @@ def _save_fallback(drafts: list[BlogDraft], run_date: str) -> None:
             "title": d.title,
             "body_html": d.body_html,
             "market_data": [s.summary_line() for s in d.market_data],
-            "coupang_links": d.coupang_links,
             "status": d.status,
             "tags": d.tags,
             "meta_description": d.meta_description,
