@@ -42,6 +42,7 @@ class Settings:
     # 이미지 API
     giphy_api_key: str = field(repr=False, default="")
     hf_api_token: str = field(repr=False, default="")
+    unsplash_access_key: str = field(repr=False, default="")
     # 옵션
     dry_run: bool = False
     log_level: str = "INFO"
@@ -71,6 +72,7 @@ class Settings:
             ),
             giphy_api_key=os.getenv("GIPHY_API_KEY", ""),
             hf_api_token=os.getenv("HF_API_TOKEN", ""),
+            unsplash_access_key=os.getenv("UNSPLASH_ACCESS_KEY", ""),
             dry_run=os.getenv("DRY_RUN", "false").lower() == "true",
             log_level=os.getenv("LOG_LEVEL", "INFO"),
         )

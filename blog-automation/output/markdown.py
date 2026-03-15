@@ -121,8 +121,9 @@ def save_draft_as_markdown(
 
     # 이미지
     if draft.images:
+        source_labels = {"giphy": "GIF", "ai": "AI 그림", "unsplash": "사진"}
         for img in draft.images:
-            source_label = "GIF" if img.source == "giphy" else "AI 그림"
+            source_label = source_labels.get(img.source, img.source)
             lines.append(f"![{img.alt_text}]({img.url})")
             lines.append(f"*{source_label}*")
             lines.append("")

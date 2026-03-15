@@ -320,6 +320,7 @@ def run() -> PipelineResult:
 
         from collectors.image_ai import generate_ai_image
         from collectors.image_giphy import search_giphy
+        from collectors.image_unsplash import search_unsplash
         from models import BlogImage
 
         images_dir = str(_ImgPath(__file__).resolve().parent / "docs" / "images")
@@ -359,6 +360,21 @@ def run() -> PipelineResult:
                         ))
                 except Exception as e:
                     logger.warning("AI 이미지 생성 실패: '%s' — %s", draft.title, e)
+
+            # Unsplash 사진 검색
+            try:
+                photos = search_unsplash(
+                    draft.topic, settings.unsplash_access_key, limit=1,
+                )
+                if photos:
+                    best = photos[0]
+                    draft.images.append(BlogImage(
+                        url=best["url"],
+                        alt_text=best.get("alt_text", draft.topic),
+                        source="unsplash",
+                    ))
+            except Exception as e:
+                logger.warning("Unsplash 검색 실패: '%s' — %s", draft.topic, e)
 
         total_imgs = sum(len(d.images) for d in result.drafts)
         logger.info("이미지 생성 완료: 총 %d개", total_imgs)

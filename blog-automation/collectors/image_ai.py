@@ -16,9 +16,10 @@ HF_INFERENCE_URL = (
 )
 
 STYLE_PREFIX = (
-    "kids crayon drawing on white sketchbook paper, "
-    "colorful crayons, childlike simple art, no text, no words, "
-    "drawn by 8 year old child, "
+    "kids crayon and colored pencil drawing on white sketchbook paper, "
+    "bright cheerful colors, happy cute funny scene, smiling faces, "
+    "childlike simple art, no text, no words, "
+    "drawn by 8 year old child, warm joyful mood, "
 )
 
 

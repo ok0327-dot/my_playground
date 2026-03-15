@@ -191,18 +191,24 @@ def _build_draft_card(uid: str, draft_dict: dict) -> str:
     images = draft_dict.get("images", [])
     images_html = ""
     if images:
+        source_labels = {"giphy": "GIF", "ai": "AI 그림", "unsplash": "사진"}
         img_parts = []
         for img in images:
             alt = html.escape(img.get("alt_text", ""))
             src = img["url"]
-            source_label = "GIF" if img.get("source") == "giphy" else "AI 그림"
+            source_label = source_labels.get(img.get("source", ""), img.get("source", ""))
             img_parts.append(
                 f'<div class="blog-image">'
                 f'<img src="{src}" alt="{alt}" loading="lazy">'
                 f'<span class="image-source">{source_label}</span>'
                 f'</div>'
             )
-        images_html = '<div class="images-row">' + "".join(img_parts) + '</div>'
+        images_html = (
+            f'<div class="images-row" id="images-{uid}">'
+            + "".join(img_parts)
+            + '</div>'
+            + f'<button class="copy-btn images-copy-btn" onclick="copyImages(\'images-{uid}\')">이미지 복사</button>'
+        )
 
     tags_html = ""
     if tags:
@@ -382,6 +388,14 @@ def _build_html(daily_data: list[tuple[str, list[dict]]]) -> str:
             border-radius: 4px;
         }}
 
+        .images-copy-btn {{
+            display: block;
+            width: 100%;
+            margin-top: 6px;
+            background: #2196F3;
+        }}
+        .images-copy-btn:active {{ background: #1976D2; }}
+
         .body-section {{ position: relative; margin-top: 8px; }}
         .body-html {{
             background: #fafafa;
@@ -463,6 +477,52 @@ def _build_html(daily_data: list[tuple[str, list[dict]]]) -> str:
                 showToast("복사 완료!");
             }} catch (err) {{
                 fallbackCopyText(text);
+            }}
+        }}
+
+        function copyImages(elementId) {{
+            var el = document.getElementById(elementId);
+            var imgs = el.querySelectorAll("img");
+            if (imgs.length === 0) {{ showToast("복사할 이미지가 없습니다"); return; }}
+
+            // 이미지를 HTML로 복사 (네이버 블로그에 붙여넣기 가능)
+            var htmlParts = [];
+            var textParts = [];
+            imgs.forEach(function(img) {{
+                var src = img.src;
+                var alt = img.alt || "";
+                var sourceSpan = img.parentElement.querySelector(".image-source");
+                var label = sourceSpan ? sourceSpan.textContent : "";
+                htmlParts.push(
+                    '<img src="' + src + '" alt="' + alt + '" style="width:100%; border-radius:8px; margin:8px 0;" />' +
+                    '<p style="font-size:12px; color:#999; text-align:center; margin:0 0 12px;">' + label + '</p>'
+                );
+                textParts.push(src);
+            }});
+
+            var htmlStr = htmlParts.join("\\n");
+            try {{
+                var blob = new Blob([htmlStr], {{ type: "text/html" }});
+                var textBlob = new Blob([textParts.join("\\n")], {{ type: "text/plain" }});
+                navigator.clipboard.write([new ClipboardItem({{ "text/html": blob, "text/plain": textBlob }})]);
+                showToast("이미지 " + imgs.length + "개 복사 완료!");
+            }} catch (e) {{
+                // fallback: 임시 div에 이미지 HTML 넣고 선택 복사
+                var tmpDiv = document.createElement("div");
+                tmpDiv.innerHTML = htmlStr;
+                tmpDiv.style.position = "fixed";
+                tmpDiv.style.left = "-9999px";
+                tmpDiv.style.top = "0";
+                document.body.appendChild(tmpDiv);
+                var range = document.createRange();
+                range.selectNodeContents(tmpDiv);
+                var sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(range);
+                try {{ document.execCommand("copy"); showToast("이미지 " + imgs.length + "개 복사 완료!"); }}
+                catch(e2) {{ fallbackCopyText(textParts.join("\\n")); showToast("이미지 URL만 복사됨"); }}
+                sel.removeAllRanges();
+                document.body.removeChild(tmpDiv);
             }}
         }}
 
