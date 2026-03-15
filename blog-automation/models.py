@@ -46,7 +46,7 @@ class Topic:
     label: TopicLabel = TopicLabel.MANUAL
     reason: str = ""
     score: int = 0
-    pivot_angle: str = ""
+    writing_angle: str = ""
     related_news: list[NewsItem] = field(default_factory=list)
 
 
@@ -59,6 +59,7 @@ class BlogDraft:
     market_data: list[MarketSnapshot] = field(default_factory=list)
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
     status: str = "draft"
+    news_summary: str = ""
     tags: list[str] = field(default_factory=list)
     meta_description: str = ""
     estimated_reading_time: str = ""

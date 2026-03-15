@@ -1,4 +1,4 @@
-"""Step 2: AI 기반 토픽 분류 (피벗 가능성 평가)."""
+"""Step 2: AI 기반 토픽 분류."""
 
 from __future__ import annotations
 
@@ -39,7 +39,7 @@ def classify_topics(
     ai_provider: str = "gemini",
     recent_topics: list[str] | None = None,
 ) -> list[Topic]:
-    """키워드 목록을 피벗 가능성 기준으로 분류하여 Topic 리스트로 반환."""
+    """키워드 목록을 블로그 콘텐츠 적합성 기준으로 분류하여 Topic 리스트로 반환."""
     if not keywords:
         return []
 
@@ -83,7 +83,7 @@ def classify_topics(
                     label=label,
                     reason=item.get("reason", ""),
                     score=score,
-                    pivot_angle=item.get("pivot_angle", ""),
+                    writing_angle=item.get("writing_angle", item.get("pivot_angle", "")),
                 )
             )
         logger.info(

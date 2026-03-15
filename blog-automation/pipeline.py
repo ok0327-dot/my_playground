@@ -1,4 +1,4 @@
-"""전체 파이프라인 오케스트레이터 — v4.0 (피벗형 그림일기)."""
+"""전체 파이프라인 오케스트레이터 — v5.0 (전 분야 그림일기)."""
 
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ def run() -> PipelineResult:
     _setup_logging(settings.log_level)
 
     result = PipelineResult()
-    logger.info("=== 블로그 자동화 파이프라인 v4.0 시작 (%s) ===", result.run_date)
+    logger.info("=== 블로그 자동화 파이프라인 v5.0 시작 (%s) ===", result.run_date)
 
     # ── Step 1: 데이터 수집 ──
     logger.info("── Step 1: 데이터 수집 ──")
@@ -91,7 +91,7 @@ def run() -> PipelineResult:
         logger.warning("수집된 토픽이 없습니다. 파이프라인 종료.")
         return result
 
-    # ── Step 2: 토픽 분류 (피벗 가능성 평가) ──
+    # ── Step 2: 토픽 분류 ──
     logger.info("── Step 2: 토픽 분류 ──")
     market_summary = ""
     if result.market_snapshots:
@@ -248,7 +248,7 @@ def run() -> PipelineResult:
             continue
 
         try:
-            pivot_context = topic.pivot_angle if topic.pivot_angle else topic.reason
+            pivot_context = topic.writing_angle if topic.writing_angle else topic.reason
             draft = generate_draft(
                 topic=topic.keyword,
                 reason=pivot_context,
@@ -331,7 +331,7 @@ def run() -> PipelineResult:
                 result.errors.append(f"html_page: {e}")
 
     # ── 결과 요약 ──
-    logger.info("=== 파이프라인 v4.0 완료 ===")
+    logger.info("=== 파이프라인 v5.0 완료 ===")
     logger.info("시장 지표: %d개", len(result.market_snapshots))
     logger.info("수집 토픽: %d개", len(result.raw_topics))
     logger.info("분류 토픽: %d개", len(result.classified_topics))

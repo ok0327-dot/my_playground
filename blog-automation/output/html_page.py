@@ -119,6 +119,7 @@ def _draft_to_dict(draft: BlogDraft) -> dict:
         "title": draft.title,
         "topic": draft.topic,
         "body_html": draft.body_html,
+        "news_summary": draft.news_summary or "",
         "tags": list(draft.tags) if draft.tags else [],
         "estimated_reading_time": draft.estimated_reading_time or "",
         "market_summary_lines": [s.summary_line() for s in draft.market_data]
@@ -174,6 +175,15 @@ def _build_draft_card(uid: str, draft_dict: dict) -> str:
     tags = draft_dict.get("tags", [])
     naver_styled = _inject_naver_styles(body_html_rendered, tags=tags)
 
+    news_summary = draft_dict.get("news_summary", "")
+    news_summary_html = ""
+    if news_summary:
+        news_summary_html = (
+            f'<div class="news-summary">'
+            f'<b>오늘의 진짜 뉴스:</b> {html.escape(news_summary)}'
+            f'</div>'
+        )
+
     tags_html = ""
     if tags:
         spans = "".join(
@@ -203,6 +213,7 @@ def _build_draft_card(uid: str, draft_dict: dict) -> str:
             {f'<span>읽기 {reading_time}</span>' if reading_time else ''}
             {tags_html}
         </div>
+        {news_summary_html}
         <div class="body-section">
             <div class="body-html" id="body-rendered-{uid}">{body_html_rendered}</div>
             <div id="body-naver-{uid}" style="display:none">{naver_styled}</div>
@@ -312,6 +323,16 @@ def _build_html(daily_data: list[tuple[str, list[dict]]]) -> str:
             padding: 2px 8px;
             border-radius: 10px;
             font-size: 0.75rem;
+        }}
+        .news-summary {{
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: 8px 12px;
+            margin: 8px 0;
+            font-size: 0.85rem;
+            color: #e65100;
+            border-radius: 4px;
+            line-height: 1.5;
         }}
 
         .body-section {{ position: relative; margin-top: 8px; }}

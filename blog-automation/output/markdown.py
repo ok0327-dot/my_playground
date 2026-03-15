@@ -94,12 +94,19 @@ def save_draft_as_markdown(
         lines.append(f"description: \"{draft.meta_description}\"")
     if draft.estimated_reading_time:
         lines.append(f"reading_time: \"{draft.estimated_reading_time}\"")
+    if draft.news_summary:
+        lines.append(f"news_summary: \"{draft.news_summary}\"")
     lines.append("---")
     lines.append("")
 
     # 제목
     lines.append(f"# {draft.title}")
     lines.append("")
+
+    # 뉴스 요약 (실제 뉴스 내용 한 줄)
+    if draft.news_summary:
+        lines.append(f"> **오늘의 진짜 뉴스:** {draft.news_summary}")
+        lines.append("")
 
     # SEO 메타 정보
     if draft.tags or draft.meta_description or draft.estimated_reading_time:

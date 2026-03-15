@@ -1,4 +1,4 @@
-"""Step 3: AI 기반 블로그 초안 생성 (피벗형) + SEO 메타데이터 파싱."""
+"""Step 3: AI 기반 블로그 초안 생성 + SEO 메타데이터 파싱."""
 
 from __future__ import annotations
 
@@ -56,6 +56,7 @@ def _parse_draft(raw: str, topic: str) -> dict:
     tags: list[str] = []
     meta_description = ""
     estimated_reading_time = ""
+    news_summary = ""
 
     lines = raw.strip().split("\n")
     body_start = 0
@@ -65,6 +66,10 @@ def _parse_draft(raw: str, topic: str) -> dict:
 
         if stripped.startswith("제목:") or stripped.startswith("제목 :"):
             title = stripped.split(":", 1)[1].strip()
+            body_start = i + 1
+
+        elif stripped.startswith("뉴스요약:") or stripped.startswith("뉴스요약 :"):
+            news_summary = stripped.split(":", 1)[1].strip()
             body_start = i + 1
 
         elif stripped.startswith("태그:") or stripped.startswith("태그 :"):
@@ -92,6 +97,7 @@ def _parse_draft(raw: str, topic: str) -> dict:
         "tags": tags,
         "meta_description": meta_description,
         "estimated_reading_time": estimated_reading_time,
+        "news_summary": news_summary,
     }
 
 
@@ -161,6 +167,7 @@ def generate_draft(
             title=_sanitize_body(parsed["title"]),
             body_html=_sanitize_body(parsed["body"]),
             market_data=market_snapshots,
+            news_summary=parsed.get("news_summary", ""),
             tags=parsed["tags"],
             meta_description=parsed["meta_description"],
             estimated_reading_time=parsed["estimated_reading_time"],
