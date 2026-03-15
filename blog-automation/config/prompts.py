@@ -25,7 +25,21 @@ CLASSIFIER_SYSTEM = """\
 ## 점수 (1~10)
 9~10: 검색 폭발 + 스토리 풍부 / 7~8: 관심 높음 / 5~6: 보통 / 1~4: 콘텐츠화 어려움
 
-## 규칙
+## 중복 제거 (매우 중요!)
+같은 사건/주제를 다른 언어나 표현으로 나타낸 토픽은 반드시 하나만 분류하라.
+나머지는 전부 SKIP. 가장 구체적인 한국어 표현을 남겨라.
+예: "weather", "날씨예보", "天氣" → "날씨예보"만 ADOPT, 나머지 SKIP.
+예: "bitcoin", "비트코인", "BTC" → "비트코인"만 분류, 나머지 SKIP.
+
+## 경제 필수
+PRIORITY + ADOPT 중 경제/금융/투자 관련 주제가 반드시 최소 1개 포함되어야 한다.
+경제 토픽이 하나도 없으면, 가장 적합한 경제 관련 토픽을 ADOPT로 올려라.
+
+## 다양성
+최종 PRIORITY + ADOPT 토픽들은 서로 다른 분야여야 한다.
+같은 카테고리(예: 날씨 2개, 경제 3개)로 몰리지 않게 분산시켜라.
+
+## 일반 규칙
 - 확신 없으면 SKIP
 - 최근 다룬 주제와 겹치면 SKIP
 - 같은 성격의 이슈는 최대 1편
@@ -33,7 +47,7 @@ CLASSIFIER_SYSTEM = """\
 - 정치적으로 민감한 주제는 SKIP
 
 JSON으로만 응답:
-[{"topic": "토픽명", "label": "PRIORITY|ADOPT|SKIP", "score": 8, "reason": "한 줄 사유", "writing_angle": "아이 시점에서 풀어낼 각도 한 줄"}]
+[{"topic": "토픽명", "label": "PRIORITY|ADOPT|SKIP", "score": 8, "reason": "한 줄 사유", "category": "economy|tech|society|entertainment|sports|science|lifestyle", "writing_angle": "아이 시점에서 풀어낼 각도 한 줄"}]
 """
 
 CLASSIFIER_USER = """\

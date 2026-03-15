@@ -199,10 +199,39 @@ def run() -> PipelineResult:
 
     selected = final_selected
 
+    # ── Step 2.3: 경제 토픽 1개 보장 ──
+    has_economy = any(t.category == "economy" for t in selected)
+    if not has_economy and selected:
+        economy_candidates = [
+            t for t in result.classified_topics
+            if t.category == "economy"
+            and t.label != TopicLabel.SKIP
+            and t not in selected
+        ]
+        if not economy_candidates:
+            economy_candidates = [
+                t for t in result.classified_topics
+                if t.category == "economy" and t not in selected
+            ]
+        if economy_candidates:
+            economy_candidates.sort(key=lambda t: -t.score)
+            best_econ = economy_candidates[0]
+            if len(selected) >= MAX_TOPICS_PER_RUN:
+                replaced = selected[-1]
+                selected[-1] = best_econ
+                logger.info(
+                    "경제 토픽 보장: '%s'(score=%d) → '%s'(score=%d) 교체",
+                    replaced.keyword, replaced.score,
+                    best_econ.keyword, best_econ.score,
+                )
+            else:
+                selected.append(best_econ)
+                logger.info("경제 토픽 추가: '%s'(score=%d)", best_econ.keyword, best_econ.score)
+
     logger.info(
         "선정된 토픽: %d개 — %s",
         len(selected),
-        [(t.keyword, t.label.value, t.score) for t in selected],
+        [(t.keyword, t.label.value, t.score, t.category) for t in selected],
     )
 
     if not selected:

@@ -83,6 +83,7 @@ def classify_topics(
                     label=label,
                     reason=item.get("reason", ""),
                     score=score,
+                    category=item.get("category", ""),
                     writing_angle=item.get("writing_angle", item.get("pivot_angle", "")),
                 )
             )

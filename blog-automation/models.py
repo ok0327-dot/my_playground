@@ -46,6 +46,7 @@ class Topic:
     label: TopicLabel = TopicLabel.MANUAL
     reason: str = ""
     score: int = 0
+    category: str = ""
     writing_angle: str = ""
     related_news: list[NewsItem] = field(default_factory=list)
 
