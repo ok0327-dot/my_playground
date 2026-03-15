@@ -51,6 +51,14 @@ class Topic:
 
 
 @dataclass
+class BlogImage:
+    """블로그 이미지."""
+    url: str
+    alt_text: str
+    source: str  # "giphy" or "ai"
+
+
+@dataclass
 class BlogDraft:
     """블로그 초안."""
     topic: str
@@ -60,6 +68,8 @@ class BlogDraft:
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
     status: str = "draft"
     news_summary: str = ""
+    image_prompt: str = ""
+    images: list[BlogImage] = field(default_factory=list)
     tags: list[str] = field(default_factory=list)
     meta_description: str = ""
     estimated_reading_time: str = ""

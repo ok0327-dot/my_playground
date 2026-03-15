@@ -139,6 +139,7 @@ WRITER_USER = """\
 ## 응답 형식
 제목: [아이에게 일어난 사건. 30자 이내]
 뉴스요약: [이 글이 다루는 실제 뉴스를 성인이 한눈에 이해할 수 있게 한 줄로. 50자 이내]
+이미지프롬프트: [본문의 핵심 장면을 영어로 묘사. 30단어 이내. 예: "a dad looking shocked at gas station price board while his car makes hungry sounds"]
 태그: [쉼표 구분 5개 이내]
 메타설명: [150자 이내]
 예상 읽기시간: [N분]

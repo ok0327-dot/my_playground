@@ -39,6 +39,9 @@ class Settings:
     generate_html_viewer: bool = True
     # 수동 토픽
     manual_topics: tuple[str, ...] = ()
+    # 이미지 API
+    giphy_api_key: str = field(repr=False, default="")
+    hf_api_token: str = field(repr=False, default="")
     # 옵션
     dry_run: bool = False
     log_level: str = "INFO"
@@ -66,6 +69,8 @@ class Settings:
             manual_topics=tuple(
                 t.strip() for t in os.getenv("MANUAL_TOPICS", "").split(",") if t.strip()
             ),
+            giphy_api_key=os.getenv("GIPHY_API_KEY", ""),
+            hf_api_token=os.getenv("HF_API_TOKEN", ""),
             dry_run=os.getenv("DRY_RUN", "false").lower() == "true",
             log_level=os.getenv("LOG_LEVEL", "INFO"),
         )

@@ -119,6 +119,14 @@ def save_draft_as_markdown(
             lines.append(f"> - 예상 읽기시간: {draft.estimated_reading_time}")
         lines.append("")
 
+    # 이미지
+    if draft.images:
+        for img in draft.images:
+            source_label = "GIF" if img.source == "giphy" else "AI 그림"
+            lines.append(f"![{img.alt_text}]({img.url})")
+            lines.append(f"*{source_label}*")
+            lines.append("")
+
     # 본문 (HTML → Markdown 변환)
     body_md = _html_to_markdown(draft.body_html)
     lines.append(body_md)

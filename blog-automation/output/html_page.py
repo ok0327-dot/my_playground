@@ -120,6 +120,10 @@ def _draft_to_dict(draft: BlogDraft) -> dict:
         "topic": draft.topic,
         "body_html": draft.body_html,
         "news_summary": draft.news_summary or "",
+        "images": [
+            {"url": img.url, "alt_text": img.alt_text, "source": img.source}
+            for img in draft.images
+        ] if draft.images else [],
         "tags": list(draft.tags) if draft.tags else [],
         "estimated_reading_time": draft.estimated_reading_time or "",
         "market_summary_lines": [s.summary_line() for s in draft.market_data]
@@ -184,6 +188,22 @@ def _build_draft_card(uid: str, draft_dict: dict) -> str:
             f'</div>'
         )
 
+    images = draft_dict.get("images", [])
+    images_html = ""
+    if images:
+        img_parts = []
+        for img in images:
+            alt = html.escape(img.get("alt_text", ""))
+            src = img["url"]
+            source_label = "GIF" if img.get("source") == "giphy" else "AI 그림"
+            img_parts.append(
+                f'<div class="blog-image">'
+                f'<img src="{src}" alt="{alt}" loading="lazy">'
+                f'<span class="image-source">{source_label}</span>'
+                f'</div>'
+            )
+        images_html = '<div class="images-row">' + "".join(img_parts) + '</div>'
+
     tags_html = ""
     if tags:
         spans = "".join(
@@ -214,6 +234,7 @@ def _build_draft_card(uid: str, draft_dict: dict) -> str:
             {tags_html}
         </div>
         {news_summary_html}
+        {images_html}
         <div class="body-section">
             <div class="body-html" id="body-rendered-{uid}">{body_html_rendered}</div>
             <div id="body-naver-{uid}" style="display:none">{naver_styled}</div>
@@ -333,6 +354,32 @@ def _build_html(daily_data: list[tuple[str, list[dict]]]) -> str:
             color: #e65100;
             border-radius: 4px;
             line-height: 1.5;
+        }}
+        .images-row {{
+            display: flex;
+            gap: 8px;
+            margin: 10px 0;
+            overflow-x: auto;
+        }}
+        .blog-image {{
+            position: relative;
+            flex: 1;
+            min-width: 0;
+        }}
+        .blog-image img {{
+            width: 100%;
+            border-radius: 8px;
+            border: 1px solid #eee;
+        }}
+        .image-source {{
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            background: rgba(0,0,0,0.5);
+            color: #fff;
+            font-size: 0.65rem;
+            padding: 2px 6px;
+            border-radius: 4px;
         }}
 
         .body-section {{ position: relative; margin-top: 8px; }}

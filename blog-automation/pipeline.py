@@ -284,6 +284,56 @@ def run() -> PipelineResult:
             except Exception as e:
                 logger.warning("리라이트 실패 (원본 유지): '%s' — %s", draft.title, e)
 
+    # ── Step 3.7: 이미지 생성 ──
+    if result.drafts and not settings.dry_run:
+        logger.info("── Step 3.7: 이미지 생성 ──")
+        from pathlib import Path as _ImgPath
+
+        from collectors.image_ai import generate_ai_image
+        from collectors.image_giphy import search_giphy
+        from models import BlogImage
+
+        images_dir = str(_ImgPath(__file__).resolve().parent / "docs" / "images")
+
+        for draft in result.drafts:
+            if draft.status == "placeholder":
+                continue
+
+            # Giphy GIF 검색
+            try:
+                gifs = search_giphy(draft.topic, settings.giphy_api_key, limit=3)
+                if gifs:
+                    best = gifs[0]
+                    draft.images.append(BlogImage(
+                        url=best["url"],
+                        alt_text=best.get("title", draft.topic),
+                        source="giphy",
+                    ))
+            except Exception as e:
+                logger.warning("Giphy 검색 실패: '%s' — %s", draft.topic, e)
+
+            # AI 크래파스 이미지 생성
+            if draft.image_prompt:
+                try:
+                    ai_path = generate_ai_image(
+                        scene_description=draft.image_prompt,
+                        hf_api_token=settings.hf_api_token,
+                        output_dir=images_dir,
+                        filename_prefix=result.run_date,
+                    )
+                    if ai_path:
+                        rel_path = "images/" + _ImgPath(ai_path).name
+                        draft.images.append(BlogImage(
+                            url=rel_path,
+                            alt_text=draft.image_prompt,
+                            source="ai",
+                        ))
+                except Exception as e:
+                    logger.warning("AI 이미지 생성 실패: '%s' — %s", draft.title, e)
+
+        total_imgs = sum(len(d.images) for d in result.drafts)
+        logger.info("이미지 생성 완료: 총 %d개", total_imgs)
+
     # ── Step 4a: 마크다운 로컬 저장 ──
     if settings.save_local_markdown and result.drafts:
         logger.info("── Step 4a: 마크다운 로컬 저장 ──")

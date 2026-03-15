@@ -57,6 +57,7 @@ def _parse_draft(raw: str, topic: str) -> dict:
     meta_description = ""
     estimated_reading_time = ""
     news_summary = ""
+    image_prompt = ""
 
     lines = raw.strip().split("\n")
     body_start = 0
@@ -70,6 +71,10 @@ def _parse_draft(raw: str, topic: str) -> dict:
 
         elif stripped.startswith("뉴스요약:") or stripped.startswith("뉴스요약 :"):
             news_summary = stripped.split(":", 1)[1].strip()
+            body_start = i + 1
+
+        elif stripped.startswith("이미지프롬프트:") or stripped.startswith("이미지프롬프트 :"):
+            image_prompt = stripped.split(":", 1)[1].strip()
             body_start = i + 1
 
         elif stripped.startswith("태그:") or stripped.startswith("태그 :"):
@@ -98,6 +103,7 @@ def _parse_draft(raw: str, topic: str) -> dict:
         "meta_description": meta_description,
         "estimated_reading_time": estimated_reading_time,
         "news_summary": news_summary,
+        "image_prompt": image_prompt,
     }
 
 
@@ -168,6 +174,7 @@ def generate_draft(
             body_html=_sanitize_body(parsed["body"]),
             market_data=market_snapshots,
             news_summary=parsed.get("news_summary", ""),
+            image_prompt=parsed.get("image_prompt", ""),
             tags=parsed["tags"],
             meta_description=parsed["meta_description"],
             estimated_reading_time=parsed["estimated_reading_time"],
